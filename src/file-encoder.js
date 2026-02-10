@@ -13,9 +13,6 @@ import { generateAliases, formatHeaders } from './alias.js';
  */
 export function encodeFile(code) {
   const ast = parseJSX(code);
-
-  if (!hasJSX(ast)) return code;
-
   const sections = [];
 
   // Handle directives ("use client", "use server", etc.)
@@ -206,6 +203,14 @@ function processExportNamed(stmt, code) {
 
   if (decl.type === 'VariableDeclaration') {
     return processVariableDeclaration(decl, code, 'export ');
+  }
+
+  if (decl.type === 'TSTypeAliasDeclaration') {
+    return 'export ' + compressTypeAlias(decl, code);
+  }
+
+  if (decl.type === 'TSInterfaceDeclaration') {
+    return 'export ' + compressInterface(decl, code);
   }
 
   return code.slice(stmt.start, stmt.end);
@@ -439,10 +444,6 @@ function indentBlock(text, indent, isSeparator) {
 // ---------------------------------------------------------------------------
 // Utilities
 // ---------------------------------------------------------------------------
-
-function hasJSX(ast) {
-  return containsJSX(ast.program);
-}
 
 function containsJSX(node) {
   let found = false;

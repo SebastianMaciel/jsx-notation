@@ -364,9 +364,19 @@ export default function Page() {
     expect(result).toContain('h1 "Hello"');
   });
 
-  it('returns non-JSX file as-is', () => {
+  it('compresses non-JSX files (imports, types, const)', () => {
+    const code = `import { createClient } from "@/lib/supabase/server"\nimport { redirect } from "next/navigation"\n\nexport type ContactInput = {\n  type: string\n  value: string\n}\n\nexport async function saveContacts(contacts: ContactInput[]) {\n  const supabase = await createClient()\n  redirect("/done")\n}`;
+    const result = encodeFile(code);
+    expect(result).toMatch(/@I @\/lib\/supabase\/server: createClient/);
+    expect(result).toMatch(/@I next\/navigation: redirect/);
+    expect(result).toMatch(/^export ContactInput = \{/m);
+    expect(result).not.toMatch(/^import /m);
+  });
+
+  it('strips const/let at top level in non-JSX files', () => {
     const code = `const x = 1 + 2;\nconsole.log(x);`;
-    expect(encodeFile(code)).toBe(code);
+    const result = encodeFile(code);
+    expect(result).toMatch(/^x = 1 \+ 2/m);
   });
 
   it('compresses default imports', () => {
