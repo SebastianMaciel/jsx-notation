@@ -2,6 +2,7 @@ import { parseJSX } from './parser.js';
 import { emit } from './emitter.js';
 import { analyze } from './analyzer.js';
 import { generateAliases, formatHeaders } from './alias.js';
+export { encodeFile } from './file-encoder.js';
 
 /**
  * Encode JSX/TSX source code into JSXN notation.

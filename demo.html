@@ -758,6 +758,215 @@
     return { output: headers ? `${headers}\n\n${body}` : body, errors };
   }
 
+  // --- Full file encoder ---
+
+  function encodeFile(code) {
+    const ast = parseJSX(code);
+    const errors = ast.errors ?? [];
+    if (!hasJSX(ast)) return { output: code, errors };
+
+    const sections = [];
+
+    // Directives ("use client", etc.)
+    for (const dir of ast.program.directives ?? []) {
+      sections.push(`"${dir.value.value}"`);
+    }
+
+    const imports = [], typeImports = [], rest = [];
+    for (const stmt of ast.program.body) {
+      if (stmt.type === 'ImportDeclaration') {
+        (stmt.importKind === 'type' ? typeImports : imports).push(stmt);
+      } else {
+        rest.push(stmt);
+      }
+    }
+
+    for (const imp of imports) sections.push(compressImport(imp));
+    for (const imp of typeImports) sections.push(compressTypeImport(imp));
+    for (const stmt of rest) {
+      const r = processStmt(stmt, code);
+      if (r !== null) sections.push(r);
+    }
+
+    return { output: sections.join('\n'), errors };
+  }
+
+  function compressImport(node) {
+    const src = node.source.value, specs = node.specifiers;
+    if (!specs.length) return `@I "${src}"`;
+    const parts = specs.map(s => {
+      if (s.type === 'ImportDefaultSpecifier') return `default ${s.local.name}`;
+      if (s.type === 'ImportNamespaceSpecifier') return `* as ${s.local.name}`;
+      if (s.importKind === 'type') return `type ${s.local.name}`;
+      if (s.imported.name !== s.local.name) return `${s.imported.name} as ${s.local.name}`;
+      return s.local.name;
+    });
+    return `@I ${src}: ${parts.join(', ')}`;
+  }
+
+  function compressTypeImport(node) {
+    const src = node.source.value, specs = node.specifiers;
+    if (!specs.length) return `@T "${src}"`;
+    const parts = specs.map(s => {
+      if (s.type === 'ImportDefaultSpecifier') return `default ${s.local.name}`;
+      if (s.imported.name !== s.local.name) return `${s.imported.name} as ${s.local.name}`;
+      return s.local.name;
+    });
+    return `@T ${src}: ${parts.join(', ')}`;
+  }
+
+  function processStmt(stmt, code) {
+    if (stmt.type === 'ExpressionStatement') {
+      const e = stmt.expression;
+      if (e.type === 'StringLiteral' || e.type === 'DirectiveLiteral') return `"${e.value}"`;
+      return code.slice(stmt.start, stmt.end);
+    }
+    if (stmt.type === 'TSInterfaceDeclaration') {
+      const body = code.slice(stmt.body.start, stmt.body.end);
+      if (stmt.extends?.length) {
+        const ext = stmt.extends.map(e => code.slice(e.start, e.end)).join(', ');
+        return `${stmt.id.name} extends ${ext} ${body}`;
+      }
+      return `${stmt.id.name} ${body}`;
+    }
+    if (stmt.type === 'TSTypeAliasDeclaration') {
+      return `${stmt.id.name} = ${code.slice(stmt.typeAnnotation.start, stmt.typeAnnotation.end)}`;
+    }
+    if (stmt.type === 'ExportDefaultDeclaration') {
+      const d = stmt.declaration;
+      if (d?.type === 'FunctionDeclaration') return processComp(d, code, 'export default ');
+      if (d?.type === 'ArrowFunctionExpression' || d?.type === 'FunctionExpression') return processComp(d, code, 'export default ');
+      return code.slice(stmt.start, stmt.end);
+    }
+    if (stmt.type === 'ExportNamedDeclaration') {
+      const d = stmt.declaration;
+      if (d?.type === 'FunctionDeclaration') return processComp(d, code, 'export ');
+      if (d?.type === 'VariableDeclaration') return processVarDecl(d, code, 'export ');
+      return code.slice(stmt.start, stmt.end);
+    }
+    if (stmt.type === 'FunctionDeclaration') return processComp(stmt, code, '');
+    if (stmt.type === 'VariableDeclaration') return processVarDecl(stmt, code, '');
+    return code.slice(stmt.start, stmt.end);
+  }
+
+  function processVarDecl(stmt, code, prefix) {
+    if (stmt.declarations.length === 1) {
+      const d = stmt.declarations[0];
+      if (d.id.type === 'Identifier' && d.init && (d.init.type === 'ArrowFunctionExpression' || d.init.type === 'FunctionExpression')) {
+        if (containsJSXNode(d.init)) return processComp(d.init, code, prefix, d.id.name);
+      }
+    }
+    return prefix + code.slice(stmt.start, stmt.end).replace(/^(const|let|var)\s+/, '');
+  }
+
+  function containsJSXNode(node) {
+    if (!node || typeof node !== 'object') return false;
+    if (node.type === 'JSXElement' || node.type === 'JSXFragment') return true;
+    for (const k of Object.keys(node)) {
+      if (k === 'loc' || k === 'leadingComments' || k === 'trailingComments') continue;
+      const v = node[k];
+      if (Array.isArray(v)) { for (const i of v) if (containsJSXNode(i)) return true; }
+      else if (v && typeof v === 'object' && v.type && containsJSXNode(v)) return true;
+    }
+    return false;
+  }
+
+  function processComp(fn, code, prefix, forceName) {
+    const body = fn.body;
+    if (!body) return prefix + code.slice(fn.start, fn.end);
+
+    if (body.type === 'JSXElement' || body.type === 'JSXFragment') {
+      const sig = buildSig(fn, code, prefix, forceName);
+      const jsxn = encodeJSXSlice(body, code);
+      return `${sig}\n  ---\n${jsxn.split('\n').map(l => l ? '  ' + l : '').join('\n')}`;
+    }
+
+    if (body.type !== 'BlockStatement' || !containsJSXNode(fn)) {
+      return prefix + code.slice(fn.start, fn.end);
+    }
+
+    const sig = buildSig(fn, code, prefix, forceName);
+    const hooks = [], logic = [];
+    let jsxNode = null;
+
+    for (const s of body.body) {
+      if (s.type === 'ReturnStatement') {
+        jsxNode = findReturnJSX(s);
+        if (!jsxNode) logic.push('  ' + code.slice(s.start, s.end));
+        continue;
+      }
+      const h = tryHook(s, code);
+      if (h !== null) { hooks.push('  ' + h); continue; }
+      logic.push('  ' + code.slice(s.start, s.end).replace(/^(const|let|var)\s+/, ''));
+    }
+
+    const parts = [sig];
+    if (hooks.length) parts.push(hooks.join('\n'));
+    if (logic.length) { if (hooks.length) parts.push(''); parts.push(logic.join('\n')); }
+    if (jsxNode) {
+      parts.push('  ---');
+      const jsxn = encodeJSXSlice(jsxNode, code);
+      parts.push(jsxn.split('\n').map(l => l ? '  ' + l : '').join('\n'));
+    }
+    return parts.join('\n');
+  }
+
+  function buildSig(fn, code, prefix, forceName) {
+    const name = forceName || (fn.id ? fn.id.name : '');
+    const ps = fn.params.length ? '(' + fn.params.map(p => {
+      if (p.typeAnnotation && p.type === 'Identifier') return p.name;
+      return code.slice(p.start, p.end);
+    }).join(', ') + ')' : '()';
+    return `${prefix}${name}${ps}`;
+  }
+
+  function tryHook(stmt, code) {
+    if (stmt.type === 'VariableDeclaration' && stmt.declarations.length === 1) {
+      const d = stmt.declarations[0], init = d.init;
+      if (!init || init.type !== 'CallExpression') return null;
+      const cn = init.callee.type === 'Identifier' ? init.callee.name : null;
+      if (!cn) return null;
+      if (cn === 'useState') {
+        let name;
+        if (d.id.type === 'ArrayPattern' && d.id.elements.length >= 1) name = d.id.elements[0].name;
+        else if (d.id.type === 'Identifier') name = d.id.name;
+        else return null;
+        return `@state ${name} = ${init.arguments.length ? code.slice(init.arguments[0].start, init.arguments[0].end) : 'undefined'}`;
+      }
+      if (cn === 'useRef') {
+        const name = d.id.type === 'Identifier' ? d.id.name : code.slice(d.id.start, d.id.end);
+        return `@ref ${name} = ${init.arguments.length ? code.slice(init.arguments[0].start, init.arguments[0].end) : 'undefined'}`;
+      }
+      if (cn.startsWith('use') && cn.length > 3) {
+        const name = d.id.type === 'Identifier' ? d.id.name : code.slice(d.id.start, d.id.end);
+        return `${name} = ${cn}${code.slice(init.start + cn.length, init.end)}`;
+      }
+    }
+    if (stmt.type === 'ExpressionStatement' && stmt.expression.type === 'CallExpression') {
+      const cn = stmt.expression.callee.type === 'Identifier' ? stmt.expression.callee.name : null;
+      if (cn && cn.startsWith('use') && cn.length > 3) return code.slice(stmt.start, stmt.end);
+    }
+    return null;
+  }
+
+  function findReturnJSX(stmt) {
+    if (!stmt.argument) return null;
+    let n = stmt.argument;
+    while (n && n.type === 'ParenthesizedExpression') n = n.expression;
+    if (n.type === 'JSXElement' || n.type === 'JSXFragment') return n;
+    return null;
+  }
+
+  function encodeJSXSlice(jsxNode, code) {
+    const src = code.slice(jsxNode.start, jsxNode.end);
+    const ast = parseJSX(src);
+    const freq = analyze(ast);
+    const aliases = generateAliases(freq);
+    const headers = formatHeaders(aliases);
+    const body = emit(ast, aliases, src);
+    return headers ? `${headers}\n\n${body}` : body;
+  }
+
   // --- JSXN syntax highlighter ---
 
   function esc(s) {
@@ -769,14 +978,34 @@
   }
 
   function highlightLine(line) {
-    // Header lines: @C or @P
+    // Alias header lines: @C, @P, @S
     if (/^\s*@[CPS]\s/.test(line)) {
       return line.replace(/^(\s*@[CPS])\s(.*)$/, (_, prefix, rest) => {
-        const pairs = rest.replace(/([A-Za-z][A-Za-z0-9.]*)=([A-Za-z][A-Za-z0-9]*)/g,
+        const pairs = rest.replace(/([A-Za-z][A-Za-z0-9.\-]*)=([A-Za-z][A-Za-z0-9]*)/g,
           (__, name, alias) => `<span class="jsxn-alias-name">${esc(name)}</span>=<span class="jsxn-alias-val">${esc(alias)}</span>`
         );
         return `<span class="jsxn-header">${esc(prefix)}</span> ${pairs}`;
       });
+    }
+
+    // Import lines: @I pkg: A, B, C
+    if (/^\s*@[IT]\s/.test(line)) {
+      return line.replace(/^(\s*@[IT])\s(.*)$/, (_, prefix, rest) => {
+        return `<span class="jsxn-header">${esc(prefix)}</span> ${esc(rest)}`;
+      });
+    }
+
+    // Hook shorthand: @state, @ref
+    if (/^\s*@(state|ref)\s/.test(line)) {
+      return line.replace(/^(\s*)(@(?:state|ref))\s(.*)$/, (_, ws, keyword, rest) => {
+        return `${ws}<span class="jsxn-header">${esc(keyword)}</span> ${esc(rest)}`;
+      });
+    }
+
+    // Separator: ---
+    if (/^\s*---\s*$/.test(line)) {
+      const ws = line.match(/^(\s*)/)[1];
+      return `${ws}<span class="jsxn-header">---</span>`;
     }
 
     // Empty / whitespace-only
@@ -1139,7 +1368,66 @@
   );
 }`,
     },
+    {
+      name: 'Full File',
+      fullFile: true,
+      code: `"use client"
+
+import React, { useState, useEffect, useCallback, useMemo } from "react"
+import { Button } from "@/components/ui/button"
+import { Card, CardHeader, CardBody } from "@/components/ui/card"
+import type { Product } from "@/types"
+
+interface ProductListProps {
+  initialProducts: Product[]
+}
+
+export default function ProductList({ initialProducts }: ProductListProps) {
+  const [products, setProducts] = useState(initialProducts)
+  const [search, setSearch] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
+
+  const filteredProducts = useMemo(() => {
+    return products.filter(p => p.name.includes(search));
+  }, [products, search])
+
+  const handleDelete = useCallback(async (id: string) => {
+    await fetch("/api/products/" + id, { method: "DELETE" });
+    setProducts(prev => prev.filter(p => p.id !== id));
+  }, [])
+
+  useEffect(() => {
+    fetchProducts().then(setProducts);
+  }, [])
+
+  return (
+    <div className="flex flex-col gap-6 p-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">Products</h1>
+        <Button onClick={() => router.push("/products/new")}>Add Product</Button>
+      </div>
+      <div className="flex flex-col gap-4">
+        {filteredProducts.map(product => (
+          <Card key={product.id}>
+            <CardHeader>
+              <h2 className="text-lg font-bold">{product.name}</h2>
+            </CardHeader>
+            <CardBody>
+              <p className="text-sm text-gray-500">{product.description}</p>
+              <div className="flex items-center gap-2 mt-4">
+                <Button onClick={() => handleDelete(product.id)}>Delete</Button>
+              </div>
+            </CardBody>
+          </Card>
+        ))}
+      </div>
+    </div>
+  )
+}`,
+    },
   ];
+
+  let currentFullFile = false;
 
   const outputEl = document.getElementById('output');
   const errorEl = document.getElementById('error');
@@ -1192,7 +1480,7 @@
     }
 
     try {
-      const { output: result, errors } = encode(code);
+      const { output: result, errors } = currentFullFile ? encodeFile(code) : encode(code);
 
       if (errors.length > 0) {
         const msgs = errors.map(e => `Line ${e.loc?.line ?? '?'}: ${e.message}`);
@@ -1236,6 +1524,7 @@
 
   function loadExample(idx) {
     const ex = EXAMPLES[idx];
+    currentFullFile = !!ex.fullFile;
     editor.dispatch({
       changes: { from: 0, to: editor.state.doc.length, insert: ex.code },
     });

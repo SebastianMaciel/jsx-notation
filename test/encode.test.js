@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
-import { encode } from '../src/index.js';
+import { encode, encodeFile } from '../src/index.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const fixture = (name) => readFileSync(join(__dirname, 'fixtures', name), 'utf-8');
@@ -296,5 +296,159 @@ describe('SPEC.md example', () => {
     expect(result).toMatch(/\*items > li\.item/);
     expect(result).toContain('B {');
     expect(result).toContain('"Confirmar"');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Full file encoding (encodeFile)
+// ---------------------------------------------------------------------------
+
+describe('full file encoding', () => {
+  it('encodes a full Next.js page with imports, types, hooks, logic, and JSX', () => {
+    const result = encodeFile(fixture('full-file.tsx'));
+
+    // Imports compressed
+    expect(result).toMatch(/^@I react: /m);
+    expect(result).toContain('useState');
+    expect(result).toContain('useEffect');
+    expect(result).toMatch(/@I @\/components\/ui\/button: Button/);
+    expect(result).toMatch(/@I next\/link: default Link/);
+
+    // Type imports
+    expect(result).toMatch(/@T @\/types: Product, Category/);
+
+    // Interface compressed (no "interface" keyword)
+    expect(result).toMatch(/^ProductListProps \{/m);
+
+    // Hooks
+    expect(result).toMatch(/@state products = initialProducts/);
+    expect(result).toMatch(/@state search = ""/);
+    expect(result).toMatch(/@state isLoading = false/);
+    expect(result).toMatch(/@ref formRef = null/);
+
+    // Other hooks kept with name = useX(...)
+    expect(result).toMatch(/router = useRouter\(\)/);
+
+    // Logic kept (const stripped)
+    expect(result).toMatch(/filteredProducts = useMemo/);
+    expect(result).toMatch(/handleDelete = useCallback/);
+
+    // useEffect kept as bare call
+    expect(result).toMatch(/useEffect\(/);
+
+    // --- separator before JSX
+    expect(result).toContain('---');
+
+    // JSX body present (flex is aliased to f)
+    expect(result).toMatch(/\.\w+\.\w+\.gap-6\.p-6/);
+  });
+
+  it('encodes a file with only imports and JSX (no hooks)', () => {
+    const code = `import { Button } from "./button"
+import { Card } from "./card"
+
+export default function Page() {
+  return (
+    <div className="container">
+      <h1>Hello</h1>
+      <Button>Click</Button>
+      <Card>Content</Card>
+    </div>
+  )
+}`;
+    const result = encodeFile(code);
+    expect(result).toMatch(/@I \.\/button: Button/);
+    expect(result).toMatch(/@I \.\/card: Card/);
+    expect(result).toContain('---');
+    expect(result).toContain('.container');
+    expect(result).toContain('h1 "Hello"');
+  });
+
+  it('returns non-JSX file as-is', () => {
+    const code = `const x = 1 + 2;\nconsole.log(x);`;
+    expect(encodeFile(code)).toBe(code);
+  });
+
+  it('compresses default imports', () => {
+    const code = `import Link from "next/link"\nexport default function A() { return <Link href="/">Home</Link> }`;
+    const result = encodeFile(code);
+    expect(result).toMatch(/@I next\/link: default Link/);
+  });
+
+  it('compresses side-effect imports', () => {
+    const code = `import "./globals.css"\nexport default function A() { return <div>Hi</div> }`;
+    const result = encodeFile(code);
+    expect(result).toMatch(/@I "\.\/globals\.css"/);
+  });
+
+  it('compresses type imports', () => {
+    const code = `import type { User } from "./types"\nexport default function A() { return <div>Hi</div> }`;
+    const result = encodeFile(code);
+    expect(result).toMatch(/@T \.\/types: User/);
+  });
+
+  it('compresses namespace imports', () => {
+    const code = `import * as React from "react"\nexport default function A() { return <div>Hi</div> }`;
+    const result = encodeFile(code);
+    expect(result).toMatch(/@I react: \* as React/);
+  });
+
+  it('compresses default + named imports', () => {
+    const code = `import React, { useState } from "react"\nexport default function A() { return <div>Hi</div> }`;
+    const result = encodeFile(code);
+    expect(result).toMatch(/@I react: default React, useState/);
+  });
+
+  it('compresses useState hook', () => {
+    const code = `export default function A() {
+  const [count, setCount] = useState(0)
+  return <div>{count}</div>
+}`;
+    const result = encodeFile(code);
+    expect(result).toMatch(/@state count = 0/);
+  });
+
+  it('compresses useRef hook', () => {
+    const code = `export default function A() {
+  const inputRef = useRef(null)
+  return <input ref={inputRef} />
+}`;
+    const result = encodeFile(code);
+    expect(result).toMatch(/@ref inputRef = null/);
+  });
+
+  it('preserves "use client" directive', () => {
+    const code = `"use client"\nexport default function A() { return <div>Hi</div> }`;
+    const result = encodeFile(code);
+    expect(result).toMatch(/^"use client"/);
+  });
+
+  it('compresses TypeScript interfaces', () => {
+    const code = `interface Props { name: string; age: number }\nexport default function A({ name }: Props) { return <div>{name}</div> }`;
+    const result = encodeFile(code);
+    expect(result).toMatch(/^Props \{/m);
+    expect(result).not.toMatch(/^interface /m);
+  });
+
+  it('handles arrow function components', () => {
+    const code = `const Page = () => {
+  const [x, setX] = useState(0)
+  return <div>{x}</div>
+}`;
+    const result = encodeFile(code);
+    expect(result).toMatch(/Page\(\)/);
+    expect(result).toMatch(/@state x = 0/);
+    expect(result).toContain('---');
+  });
+
+  it('strips const/let from logic lines', () => {
+    const code = `export default function A() {
+  const data = fetchData()
+  let count = data.length
+  return <div>{count}</div>
+}`;
+    const result = encodeFile(code);
+    expect(result).toMatch(/^\s+data = fetchData\(\)/m);
+    expect(result).toMatch(/^\s+count = data\.length/m);
   });
 });
