@@ -1,7 +1,8 @@
 {
-  "name": "jsxn-parser",
+  "name": "jsx-notation",
   "version": "0.1.0",
-  "description": "JSX to JSXN encoder — compact notation optimized for LLMs",
+  "description": "JSXN encoder — compact notation for React/Next.js files, optimized for LLMs",
+  "author": "Sebastián Maciel",
   "type": "module",
   "exports": "./src/index.js",
   "main": "./src/index.js",

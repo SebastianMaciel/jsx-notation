@@ -98,7 +98,7 @@ String en formato JSXN.
 ### Módulos sugeridos
 
 ```
-jsxn-parser/
+jsxn/
   src/
     index.js          — entry point, exporta encode(jsxCode) => jsxnString
     parser.js         — wrapper de @babel/parser
