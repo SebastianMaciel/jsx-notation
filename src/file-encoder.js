@@ -447,8 +447,9 @@ function indentBlock(text, indent, isSeparator) {
 
 function containsJSX(node) {
   let found = false;
-  function walk(n) {
-    if (found || !n || typeof n !== 'object') return;
+  const MAX_DEPTH = 200;
+  function walk(n, depth) {
+    if (found || !n || typeof n !== 'object' || depth > MAX_DEPTH) return;
     if (n.type === 'JSXElement' || n.type === 'JSXFragment') {
       found = true;
       return;
@@ -456,12 +457,12 @@ function containsJSX(node) {
     for (const key of Object.keys(n)) {
       if (key === 'loc' || key === 'leadingComments' || key === 'trailingComments') continue;
       const val = n[key];
-      if (Array.isArray(val)) { for (const item of val) walk(item); }
-      else if (val && typeof val === 'object' && val.type) walk(val);
+      if (Array.isArray(val)) { for (const item of val) walk(item, depth + 1); }
+      else if (val && typeof val === 'object' && val.type) walk(val, depth + 1);
       if (found) return;
     }
   }
-  walk(node);
+  walk(node, 0);
   return found;
 }
 

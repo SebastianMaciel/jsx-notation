@@ -29,8 +29,9 @@ export function encode(code) {
 
 function hasJSX(ast) {
   let found = false;
-  function walk(node) {
-    if (found || !node || typeof node !== 'object') return;
+  const MAX_DEPTH = 200;
+  function walk(node, depth) {
+    if (found || !node || typeof node !== 'object' || depth > MAX_DEPTH) return;
     if (node.type === 'JSXElement' || node.type === 'JSXFragment') {
       found = true;
       return;
@@ -39,13 +40,13 @@ function hasJSX(ast) {
       if (key === 'leadingComments' || key === 'trailingComments' || key === 'loc') continue;
       const val = node[key];
       if (Array.isArray(val)) {
-        for (const item of val) walk(item);
+        for (const item of val) walk(item, depth + 1);
       } else if (val && typeof val === 'object' && val.type) {
-        walk(val);
+        walk(val, depth + 1);
       }
       if (found) return;
     }
   }
-  walk(ast.program);
+  walk(ast.program, 0);
   return found;
 }

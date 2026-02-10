@@ -3,7 +3,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
-import { readFile } from 'node:fs/promises';
+import { readFile, stat, realpath } from 'node:fs/promises';
 import { resolve, extname } from 'node:path';
 import { encode, encodeFile } from '../src/index.js';
 
@@ -11,6 +11,10 @@ const server = new McpServer({
   name: 'jsx-notation',
   version: '0.1.0',
 });
+
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
+const MAX_INPUT_LENGTH = 10 * 1024 * 1024;
+const ALLOWED_EXTENSIONS = new Set(['.jsx', '.tsx', '.js', '.ts']);
 
 // ---------------------------------------------------------------------------
 // Tool: read_jsxn — read a file from disk and return its JSXN-encoded version
@@ -32,27 +36,50 @@ server.registerTool('read_jsxn', {
 }, async ({ path: filePath }) => {
   try {
     const absPath = resolve(filePath);
-    const content = await readFile(absPath, 'utf-8');
-    const ext = extname(absPath).toLowerCase();
 
-    if (!['.jsx', '.tsx', '.js', '.ts'].includes(ext)) {
+    // Validate extension before reading anything
+    const ext = extname(absPath).toLowerCase();
+    if (!ALLOWED_EXTENSIONS.has(ext)) {
       return {
-        content: [{ type: 'text', text: content }],
+        isError: true,
+        content: [{ type: 'text', text: 'Only .jsx, .tsx, .js, and .ts files are supported' }],
       };
     }
 
+    // Resolve symlinks and validate the real path
+    const realFile = await realpath(absPath);
+    if (extname(realFile).toLowerCase() !== ext) {
+      return {
+        isError: true,
+        content: [{ type: 'text', text: 'Symlink target must have the same extension' }],
+      };
+    }
+
+    // Check file size before reading
+    const stats = await stat(realFile);
+    if (stats.size > MAX_FILE_SIZE) {
+      return {
+        isError: true,
+        content: [{ type: 'text', text: `File too large (max ${MAX_FILE_SIZE / 1024 / 1024} MB)` }],
+      };
+    }
+
+    const content = await readFile(realFile, 'utf-8');
     const encoded = encodeFile(content);
 
     return {
       content: [{
         type: 'text',
-        text: `// JSXN: ${absPath}\n${encoded}`,
+        text: `// JSXN: ${filePath}\n${encoded}`,
       }],
     };
   } catch (err) {
+    const msg = err.code === 'ENOENT' ? 'File not found'
+              : err.code === 'EACCES' ? 'Permission denied'
+              : 'Unable to read file';
     return {
       isError: true,
-      content: [{ type: 'text', text: `Error reading ${filePath}: ${err.message}` }],
+      content: [{ type: 'text', text: msg }],
     };
   }
 });
@@ -68,7 +95,10 @@ server.registerTool('encode_jsxn', {
     'Use "snippet" mode for JSX fragments (just the template). ' +
     'Use "file" mode for complete React/Next.js files with imports, types, hooks, etc.',
   inputSchema: {
-    code: z.string().describe('The JSX/TSX source code to encode'),
+    code: z
+      .string()
+      .max(MAX_INPUT_LENGTH, `Input must be under ${MAX_INPUT_LENGTH / 1024 / 1024} MB`)
+      .describe('The JSX/TSX source code to encode'),
     mode: z
       .enum(['file', 'snippet'])
       .default('file')
@@ -83,7 +113,7 @@ server.registerTool('encode_jsxn', {
   } catch (err) {
     return {
       isError: true,
-      content: [{ type: 'text', text: `Encoding error: ${err.message}` }],
+      content: [{ type: 'text', text: 'Unable to parse or encode the provided code' }],
     };
   }
 });

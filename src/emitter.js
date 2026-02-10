@@ -85,7 +85,11 @@ function getRawTagName(nameNode) {
 /**
  * Emit a single JSX node (element or fragment) and its children.
  */
+const MAX_DEPTH = 200;
+
 function emitNode(node, level, lines, ctx) {
+  if (level > MAX_DEPTH) return;
+
   if (node.type === 'JSXFragment') {
     const children = getSignificantChildren(node.children);
     lines.push(`${indent(level)}_`);

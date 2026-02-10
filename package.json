@@ -9,9 +9,16 @@
   "bin": {
     "jsx-notation-mcp": "./mcp/index.js"
   },
+  "files": [
+    "src/**/*.js",
+    "mcp/index.js"
+  ],
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest"
+  },
+  "engines": {
+    "node": ">=18"
   },
   "dependencies": {
     "@babel/parser": "^7.26.0",
