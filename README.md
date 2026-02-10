@@ -32,7 +32,7 @@ Indentation replaces closing tags. `.class` and `#id` selectors replace attribut
 ## Install
 
 ```bash
-npm install jsxn
+npm install jsx-notation
 ```
 
 ## Usage
@@ -40,7 +40,7 @@ npm install jsxn
 ### As a library
 
 ```js
-import { encode, encodeFile } from 'jsxn';
+import { encode, encodeFile } from 'jsx-notation';
 
 // Encode a JSX snippet
 const jsxn = encode('<Button onClick={go}>Save</Button>');
@@ -56,7 +56,7 @@ JSXN includes an MCP server that lets AI assistants read your files in compresse
 **Claude Code:**
 
 ```bash
-claude mcp add jsxn -- npx jsxn-mcp
+claude mcp add jsx-notation -- npx jsx-notation-mcp
 ```
 
 **Cursor** (`~/.cursor/mcp.json` or `.cursor/mcp.json`):
@@ -64,9 +64,9 @@ claude mcp add jsxn -- npx jsxn-mcp
 ```json
 {
   "mcpServers": {
-    "jsxn": {
+    "jsx-notation": {
       "command": "npx",
-      "args": ["jsxn-mcp"]
+      "args": ["jsx-notation-mcp"]
     }
   }
 }
@@ -77,9 +77,9 @@ claude mcp add jsxn -- npx jsxn-mcp
 ```json
 {
   "servers": {
-    "jsxn": {
+    "jsx-notation": {
       "command": "npx",
-      "args": ["jsxn-mcp"]
+      "args": ["jsx-notation-mcp"]
     }
   }
 }
@@ -98,8 +98,8 @@ Add this to your `CLAUDE.md` or `.cursorrules` so the assistant prefers JSXN:
 
 ```
 When you need to read .jsx, .tsx, .js, or .ts files for context, use the
-read_jsxn tool from the jsxn MCP server. It returns JSXN compact notation
-(~40% fewer tokens) that you understand perfectly.
+read_jsxn tool from the jsx-notation MCP server. It returns JSXN compact
+notation (~40% fewer tokens) that you understand perfectly.
 ```
 
 ## Notation reference
