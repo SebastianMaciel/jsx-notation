@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>JSXN Encoder</title>
+<title>JSXN — Compact notation for React components</title>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -11,150 +11,102 @@
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     background: #0a0a0a;
     color: #e0e0e0;
-    height: 100vh;
-    overflow: hidden;
+    min-height: 100vh;
     display: flex;
     flex-direction: column;
+    align-items: center;
+    padding: 40px 20px;
   }
 
-  header {
-    padding: 24px 32px 16px;
+  .hero { text-align: center; margin-bottom: 40px; }
+  .hero h1 { font-size: 48px; font-weight: 700; color: #fff; letter-spacing: -0.03em; margin-bottom: 12px; }
+  .hero p { font-size: 17px; color: #888; line-height: 1.5; max-width: 540px; margin: 0 auto; }
+  .hero .accent { color: #4ade80; font-weight: 500; }
+  .hero .hero-sub { font-size: 14px; color: #555; margin-top: 12px; }
+
+  .card {
+    width: 100%;
+    max-width: 720px;
+    border: 1px solid #1e1e1e;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.3);
+  }
+
+  .card-titlebar {
+    background: #1a1a1a;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
     border-bottom: 1px solid #1e1e1e;
   }
 
-  header h1 {
-    font-size: 20px;
-    font-weight: 600;
-    color: #fff;
-    letter-spacing: -0.02em;
+  .dot { width: 12px; height: 12px; border-radius: 50%; }
+  .dot-red { background: #ff5f57; }
+  .dot-yellow { background: #febc2e; }
+  .dot-green { background: #28c840; }
+  .card-filename {
+    margin-left: 8px;
+    font-size: 13px;
+    color: #666;
+    font-family: "SF Mono", "Fira Code", "JetBrains Mono", Consolas, monospace;
   }
 
-  header h1 span { color: #666; font-weight: 400; }
-
-  .main {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    padding: 0;
-    min-height: 0;
-    overflow: hidden;
+  .card-body {
+    background: #0f0f0f;
+    padding: 16px 0;
+    transition: opacity 0.3s ease;
   }
 
-  .panels {
-    flex: 1;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    min-height: 0;
-    overflow: hidden;
-  }
-
-  .panel {
-    display: flex;
-    flex-direction: column;
-    min-height: 0;
-    min-width: 0;
-    overflow: hidden;
-    border-right: 1px solid #1e1e1e;
-  }
-
-  .panel:last-child { border-right: none; }
-
-  .panel-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 12px 20px;
-    border-bottom: 1px solid #1e1e1e;
-    flex-shrink: 0;
-  }
-
-  .panel-label {
-    font-size: 11px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: #888;
-  }
-
-  .panel-stat {
-    font-size: 12px;
-    font-variant-numeric: tabular-nums;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-  }
-
-  .panel-stat .tok-value {
-    font-weight: 700;
-    color: #ccc;
-  }
-
-  .panel-stat .tok-label {
-    font-weight: 700;
-    font-size: 10px;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: #888;
-  }
-
-  /* CodeMirror container */
-  #editor-wrap {
-    flex: 1;
-    overflow: hidden;
-    min-height: 0;
-    min-width: 0;
-  }
-
-  #editor-wrap .cm-editor {
-    height: 100%;
-    width: 100%;
-    background: transparent;
-  }
-
-  #editor-wrap .cm-editor .cm-scroller {
+  .line {
+    padding: 0 20px 0 28px;
+    border-left: 3px solid transparent;
     font-family: "SF Mono", "Fira Code", "JetBrains Mono", Consolas, monospace;
     font-size: 13px;
     line-height: 1.6;
-    padding: 12px 0;
-  }
-
-  #editor-wrap .cm-editor .cm-content {
-    padding: 0 20px;
-  }
-
-  #editor-wrap .cm-editor .cm-gutters {
-    display: none;
-  }
-
-  #editor-wrap .cm-editor.cm-focused {
-    outline: none;
-  }
-
-  #editor-wrap .cm-editor .cm-activeLine,
-  #editor-wrap .cm-editor .cm-activeLineGutter {
-    background: transparent;
-  }
-
-  .output {
-    flex: 1;
-    width: 100%;
-    padding: 12px 20px;
-    background: transparent;
-    font-family: "SF Mono", "Fira Code", "JetBrains Mono", Consolas, monospace;
-    font-size: 13px;
-    line-height: 1.6;
-    border: none;
-    outline: none;
-    resize: none;
-    tab-size: 2;
-    overflow: auto;
     white-space: pre;
     color: #d4d4d4;
+    min-height: 1.6em;
+    transition: border-left-color 0.2s, background-color 0.2s, max-height 0.3s ease, opacity 0.3s ease, min-height 0.3s ease, padding-top 0.3s ease, padding-bottom 0.3s ease;
+    overflow: hidden;
+  }
+  .line.hl {
+    border-left-color: #4ade80;
+    background: rgba(74, 222, 128, 0.05);
+  }
+  .line.collapsing {
+    max-height: 0 !important;
+    min-height: 0 !important;
+    opacity: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+  .line.inserting {
+    max-height: 0;
+    min-height: 0;
+    opacity: 0;
   }
 
-  .output.empty { color: #333; }
+  .token-counter {
+    text-align: center;
+    min-height: 56px;
+  }
+  .token-counter .tokens { font-size: 36px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+  .token-counter .tok-before { color: #555; }
+  .token-counter .tok-arrow { color: #333; margin: 0 12px; font-weight: 400; }
+  .token-counter .tok-after { color: #d4d4d4; transition: color 0.3s; }
+  .token-counter .tok-after.shrinking { color: #4ade80; }
+  .token-counter .tok-unit { color: #555; font-size: 18px; font-weight: 500; margin-left: 6px; }
+  .token-counter .savings { font-size: 17px; color: #4ade80; margin-top: 6px; font-weight: 600; min-height: 24px; }
 
-  /* JSXN syntax highlighting */
+  .token-counter-section {
+    width: 100%;
+    max-width: 720px;
+    margin-top: 32px;
+  }
+
+  /* JSXN syntax */
   .jsxn-header { color: #c586c0; }
   .jsxn-alias-name { color: #9cdcfe; }
   .jsxn-alias-val { color: #ce9178; }
@@ -173,1588 +125,664 @@
   .jsxn-fragment { color: #c586c0; }
   .jsxn-spread { color: #569cd6; }
 
-  /* Examples bar */
-  .examples {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 20px;
-    border-bottom: 1px solid #1e1e1e;
-    flex-shrink: 0;
+  /* JSX syntax */
+  .jsx-kw { color: #c586c0; }
+  .jsx-str { color: #ce9178; }
+  .jsx-tag { color: #4ec9b0; }
+  .jsx-attr { color: #9cdcfe; }
+  .jsx-num { color: #b5cea8; }
+
+  .content {
+    width: 100%;
+    max-width: 720px;
+    margin: 0 auto;
+  }
+
+  .section { margin-top: 80px; }
+  .section h2 {
+    font-size: 28px;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: -0.02em;
+    margin-bottom: 8px;
+  }
+  .section .subtext {
+    font-size: 15px;
+    color: #666;
+    margin-bottom: 24px;
+  }
+
+  .transform-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .transform-card {
+    background: #0f0f0f;
+    border: 1px solid #1e1e1e;
+    border-radius: 8px;
+    padding: 16px;
+  }
+  .transform-card .label {
+    font-size: 11px;
+    text-transform: uppercase;
+    color: #555;
+    letter-spacing: 0.04em;
+    margin-bottom: 10px;
+  }
+  .transform-card .before {
+    font-family: "SF Mono", "Fira Code", "JetBrains Mono", Consolas, monospace;
+    font-size: 12px;
+    color: #666;
+    text-decoration: line-through;
+    text-decoration-color: #333;
+    line-height: 1.6;
+    white-space: pre;
     overflow-x: auto;
   }
-
-  .examples-label {
-    font-size: 11px;
-    color: #555;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    white-space: nowrap;
-    margin-right: 4px;
-  }
-
-  .example-btn {
-    padding: 5px 14px;
-    background: #1a1a1a;
-    color: #999;
-    border: 1px solid #2a2a2a;
-    border-radius: 20px;
+  .transform-card .after {
+    font-family: "SF Mono", "Fira Code", "JetBrains Mono", Consolas, monospace;
     font-size: 12px;
-    font-weight: 400;
-    cursor: pointer;
-    transition: all 0.15s;
-    white-space: nowrap;
+    line-height: 1.6;
+    margin-top: 6px;
+    white-space: pre;
+    overflow-x: auto;
+  }
+  .transform-card .after .dim {
+    color: #555;
+    font-style: italic;
   }
 
-  .example-btn:hover { background: #222; color: #ccc; border-color: #444; }
-  .example-btn.active { background: #fff; color: #000; border-color: #fff; font-weight: 500; }
-
-  /* Footer */
-  .footer {
-    border-top: 1px solid #1e1e1e;
-    background: #0a0a0a;
-    flex-shrink: 0;
-    padding: 20px 32px;
+  .stats-row {
     display: flex;
-    align-items: center;
-    gap: 24px;
+    justify-content: center;
+    gap: 64px;
+    margin-top: 80px;
+  }
+  .stat { text-align: center; }
+  .stat .number {
+    font-size: 48px;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: -0.02em;
+  }
+  .stat .label {
+    font-size: 13px;
+    color: #666;
+    margin-top: 4px;
   }
 
-  .footer-encode {
-    flex-shrink: 0;
+  .install-block {
+    background: #0f0f0f;
+    border: 1px solid #1e1e1e;
+    border-radius: 8px;
+    padding: 16px 20px;
+    font-family: "SF Mono", "Fira Code", "JetBrains Mono", Consolas, monospace;
+    font-size: 13px;
+    color: #4ade80;
+    overflow-x: auto;
+    white-space: pre;
+  }
+  .install-group { margin-bottom: 20px; }
+  .install-label {
+    font-size: 13px;
+    color: #666;
+    margin-bottom: 8px;
+  }
+  .install-label code {
+    font-family: "SF Mono", "Fira Code", "JetBrains Mono", Consolas, monospace;
+    font-size: 12px;
+    color: #555;
+  }
+  .install-wrap {
     position: relative;
   }
-
-  .footer-encode button {
-    padding: 14px 36px;
-    background: #fff;
-    color: #000;
-    border: none;
-    border-radius: 10px;
-    font-size: 15px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: opacity 0.15s;
-  }
-
-  .footer-encode button:hover { opacity: 0.85; }
-  .footer-encode button:active { opacity: 0.7; }
-
-  .encode-tooltip {
+  .install-wrap .copy-btn {
     position: absolute;
-    bottom: calc(100% + 10px);
-    left: 0;
-    right: 0;
-    background: #1e1e1e;
-    color: #ccc;
-    font-size: 12px;
-    line-height: 1.4;
-    padding: 8px 12px;
-    border-radius: 8px;
-    border: 1px solid #333;
-    white-space: normal;
-    text-align: center;
-    pointer-events: none;
-    opacity: 0;
-    transition: opacity 0.1s;
-  }
-
-  .encode-tooltip::after {
-    content: '';
-    position: absolute;
-    top: 100%;
-    left: 50%;
-    transform: translateX(-50%);
-    border: 5px solid transparent;
-    border-top-color: #333;
-  }
-
-  .footer-encode:hover .encode-tooltip { opacity: 1; }
-
-  .footer-stats {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    gap: 16px;
-  }
-
-  /* Input → Output flow */
-  .stat-flow {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
-
-  .stat-pill {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 10px 20px;
-    background: #141414;
-    border: 1px solid #1e1e1e;
-    border-radius: 10px;
-    min-width: 100px;
-  }
-
-  .stat-pill-label {
-    font-size: 10px;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    color: #555;
-    margin-bottom: 4px;
-  }
-
-  .stat-pill-value {
-    font-size: 22px;
-    font-weight: 700;
-    font-variant-numeric: tabular-nums;
-    color: #ccc;
-    line-height: 1;
-  }
-
-  .stat-pill-unit {
-    font-size: 11px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: #888;
-    margin-top: 5px;
-  }
-
-  .stat-arrow {
-    font-size: 18px;
-    color: #333;
-    flex-shrink: 0;
-  }
-
-  /* Savings hero card */
-  .stat-savings {
-    flex: 1;
-    max-width: 360px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    padding: 12px 20px;
-    background: linear-gradient(135deg, rgba(74, 222, 128, 0.06), rgba(74, 222, 128, 0.02));
-    border: 1px solid rgba(74, 222, 128, 0.15);
-    border-radius: 12px;
-  }
-
-  .stat-savings-top {
-    display: flex;
-    align-items: baseline;
-    gap: 12px;
-  }
-
-  .stat-savings-pct {
-    font-size: 32px;
-    font-weight: 800;
-    font-variant-numeric: tabular-nums;
-    color: #4ade80;
-    line-height: 1;
-  }
-
-  .stat-savings-detail {
-    font-size: 13px;
-    color: #4ade8088;
-  }
-
-  .stat-savings-detail .token-label {
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: #4ade80cc;
-  }
-
-  .stat-savings-detail span {
-    font-weight: 600;
-    color: #4ade80cc;
-  }
-
-  .compression-bar-track {
-    height: 6px;
+    top: 10px;
+    right: 10px;
     background: #1a1a1a;
-    border-radius: 3px;
-    overflow: hidden;
-  }
-
-  .compression-bar-fill {
-    height: 100%;
-    background: linear-gradient(90deg, #4ade80, #22c55e);
-    border-radius: 3px;
-    transition: width 0.4s ease;
-    width: 0%;
-  }
-
-  .banner {
-    padding: 10px 20px;
+    border: 1px solid #2a2a2a;
+    border-radius: 6px;
+    color: #666;
     font-size: 12px;
-    font-family: monospace;
-    display: none;
-    flex-shrink: 0;
+    padding: 4px 10px;
+    cursor: pointer;
+    transition: color 0.2s, border-color 0.2s;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  .install-wrap .copy-btn:hover {
+    color: #ccc;
+    border-color: #444;
+  }
+  .install-wrap .copy-btn.copied {
+    color: #4ade80;
+    border-color: #4ade80;
   }
 
-  .banner.visible { display: block; }
-
-  .banner.error {
-    background: #1a0000;
-    color: #e55;
-    border-top: 1px solid #300;
+  .bottom-links {
+    margin-top: 80px;
+    margin-bottom: 120px;
+    display: flex;
+    gap: 32px;
+    justify-content: center;
   }
-
-  .banner.warning {
-    background: #1a1500;
-    color: #e5b750;
-    border-top: 1px solid #332800;
+  .bottom-links a {
+    color: #888;
+    font-size: 15px;
+    text-decoration: none;
+    transition: color 0.2s;
   }
+  .bottom-links a:hover { color: #fff; }
 
-  /* Medium screens */
-  @media (max-width: 1024px) {
-    .footer { padding: 16px 20px; gap: 16px; }
-    .stat-pill { padding: 8px 14px; min-width: 80px; }
-    .stat-pill-value { font-size: 18px; }
-    .stat-savings-pct { font-size: 26px; }
-    .stat-savings { max-width: 280px; }
-    .footer-encode button { padding: 12px 24px; font-size: 14px; }
+  @media (max-width: 768px) {
+    body { padding: 24px 16px; }
+    .hero h1 { font-size: 36px; }
+    .hero p { font-size: 15px; }
+    .card { max-width: 100%; }
+    .line { font-size: 12px; padding: 0 16px 0 24px; }
+    .transform-grid { grid-template-columns: 1fr; }
+    .stats-row { gap: 40px; }
   }
-
-  /* Small screens: stack panels, reflow footer */
-  @media (max-width: 700px) {
-    body { height: auto; min-height: 100vh; overflow: auto; }
-    .main { overflow: visible; min-height: 0; }
-    .panels { grid-template-columns: 1fr; grid-template-rows: 300px 300px; }
-    .panel { border-right: none; border-bottom: 1px solid #1e1e1e; }
-
-    .footer {
-      flex-direction: column;
-      align-items: stretch;
-      padding: 16px;
-      gap: 12px;
-    }
-
-    .footer-encode { order: -1; }
-    .footer-encode button { width: 100%; }
-
-    .footer-stats {
-      flex-direction: column;
-      gap: 12px;
-    }
-
-    .stat-flow { justify-content: center; }
-    .stat-savings { max-width: 100%; }
-  }
-
-  /* Very small screens */
-  @media (max-width: 420px) {
-    header { padding: 16px 16px 12px; }
-    .examples { padding: 8px 12px; gap: 6px; }
-    .example-btn { padding: 4px 10px; font-size: 11px; }
-    .footer { padding: 12px; }
-    .stat-pill { padding: 8px 12px; min-width: 70px; }
-    .stat-pill-value { font-size: 16px; }
-    .stat-savings-pct { font-size: 22px; }
+  @media (max-width: 480px) {
+    .hero h1 { font-size: 28px; }
+    .line { font-size: 11px; padding: 0 12px 0 20px; }
+    .stats-row { gap: 24px; flex-wrap: wrap; }
+    .stat .number { font-size: 36px; }
   }
 </style>
 </head>
 <body>
 
-<header>
-  <h1>JSXN <span>encoder</span></h1>
-</header>
+<div class="hero">
+  <h1>JSXN</h1>
+  <p>Your React components eat context window for breakfast.<br>
+  JSXN compresses them so your AI reads <span class="accent">~40% more code</span>.</p>
+  <p class="hero-sub">An MCP server for Claude Code, Cursor, Windsurf, or any AI-powered IDE.</p>
+</div>
 
-<div class="main">
-  <div class="examples">
-    <span class="examples-label">Examples</span>
+<div class="card">
+  <div class="card-titlebar">
+    <div class="dot dot-red"></div>
+    <div class="dot dot-yellow"></div>
+    <div class="dot dot-green"></div>
+    <span class="card-filename">TaskList.tsx</span>
   </div>
-  <div class="panels">
-    <div class="panel">
-      <div class="panel-header">
-        <span class="panel-label">JSX input</span>
-        <span class="panel-stat" id="input-chars"></span>
-      </div>
-      <div id="editor-wrap"></div>
-    </div>
-    <div class="panel">
-      <div class="panel-header">
-        <span class="panel-label">JSXN output</span>
-        <span class="panel-stat" id="output-chars"></span>
-      </div>
-      <div class="output empty" id="output">Click "Encode" or press Ctrl+Enter</div>
-    </div>
-  </div>
+  <div class="card-body" id="code"></div>
+</div>
 
-  <div class="banner warning" id="warning"></div>
-  <div class="banner error" id="error"></div>
-
-  <div class="footer">
-    <div class="footer-encode">
-      <span class="encode-tooltip">Edit the JSX input freely and re-encode to test compression</span>
-      <button id="encode-btn">Encode</button>
+<div class="token-counter-section">
+  <div class="token-counter" id="counter">
+    <div class="tokens">
+      <span class="tok-before">195</span>
+      <span class="tok-arrow">&rarr;</span>
+      <span class="tok-after" id="tok-cur">195</span>
+      <span class="tok-unit">tokens</span>
     </div>
-    <div class="footer-stats" id="stats">
-      <div class="stat-flow">
-        <div class="stat-pill">
-          <span class="stat-pill-label">Input</span>
-          <span class="stat-pill-value" id="stat-input-tok">—</span>
-          <span class="stat-pill-unit">tokens</span>
-        </div>
-        <span class="stat-arrow">→</span>
-        <div class="stat-pill">
-          <span class="stat-pill-label">Output</span>
-          <span class="stat-pill-value" id="stat-output-tok">—</span>
-          <span class="stat-pill-unit">tokens</span>
-        </div>
-      </div>
-      <div class="stat-savings">
-        <div class="stat-savings-top">
-          <span class="stat-savings-pct" id="stat-pct">—</span>
-          <span class="stat-savings-detail"><span id="stat-saved-tok">—</span> <span class="token-label">tokens</span> saved</span>
-        </div>
-        <div class="compression-bar-track">
-          <div class="compression-bar-fill" id="compression-fill"></div>
-        </div>
-      </div>
-    </div>
+    <div class="savings" id="savings"></div>
   </div>
 </div>
 
-<script type="module">
-  // --- CodeMirror ---
-  import { EditorView, keymap } from 'https://esm.sh/@codemirror/view@6';
-  import { EditorState } from 'https://esm.sh/@codemirror/state@6';
-  import { javascript } from 'https://esm.sh/@codemirror/lang-javascript@6';
-  import { oneDark } from 'https://esm.sh/@codemirror/theme-one-dark@6';
-  import { defaultKeymap } from 'https://esm.sh/@codemirror/commands@6';
-  import { syntaxHighlighting, defaultHighlightStyle, bracketMatching } from 'https://esm.sh/@codemirror/language@6';
-  import { closeBrackets } from 'https://esm.sh/@codemirror/autocomplete@6';
-
-  // --- Babel parser ---
-  import { parse } from 'https://esm.sh/@babel/parser@7.26.5';
-
-  // --- Inline encoder (same as src/, self-contained) ---
-
-  function parseJSX(code) {
-    return parse(code, {
-      sourceType: 'module',
-      plugins: ['jsx', 'typescript'],
-      errorRecovery: true,
-    });
-  }
-
-  function analyze(ast) {
-    const components = new Map();
-    const props = new Map();
-    const classes = new Map();
-    walkForAnalysis(ast.program, components, props, classes);
-    return { components, props, classes };
-  }
-
-  function walkForAnalysis(node, components, props, classes) {
-    if (!node || typeof node !== 'object') return;
-    if (node.type === 'JSXOpeningElement') {
-      const nameNode = node.name;
-      if (nameNode.type === 'JSXIdentifier' && /^[A-Z]/.test(nameNode.name)) {
-        components.set(nameNode.name, (components.get(nameNode.name) ?? 0) + 1);
-      }
-      for (const attr of node.attributes) {
-        if (attr.type === 'JSXAttribute') {
-          const propName = attr.name.type === 'JSXNamespacedName'
-            ? `${attr.name.namespace.name}:${attr.name.name.name}`
-            : attr.name.name;
-          if (propName === 'className') {
-            const val = attr.value;
-            if (val && val.type === 'StringLiteral') {
-              for (const cls of val.value.split(/\s+/).filter(Boolean)) {
-                classes.set(cls, (classes.get(cls) ?? 0) + 1);
-              }
-            }
-            continue;
-          }
-          if (propName !== 'id') {
-            props.set(propName, (props.get(propName) ?? 0) + 1);
-          }
-        }
-      }
-    }
-    for (const key of Object.keys(node)) {
-      if (key === 'loc' || key === 'leadingComments' || key === 'trailingComments') continue;
-      const val = node[key];
-      if (Array.isArray(val)) { for (const item of val) walkForAnalysis(item, components, props, classes); }
-      else if (val && typeof val === 'object' && val.type) walkForAnalysis(val, components, props, classes);
-    }
-  }
-
-  function generateAliases(frequencies) {
-    return { components: genCompAliases(frequencies.components), props: genPropAliases(frequencies.props), classes: genClassAliases(frequencies.classes ?? new Map()) };
-  }
-
-  function genCompAliases(freq) {
-    const aliases = new Map();
-    const candidates = [...freq.entries()].filter(([n]) => n.length > 1).sort((a, b) => b[1] - a[1]);
-    const used = new Set();
-    for (const [name] of candidates) { const a = findAlias(name, used, true); used.add(a); aliases.set(name, a); }
-    return aliases;
-  }
-
-  function genPropAliases(freq) {
-    const aliases = new Map();
-    const candidates = [...freq.entries()].filter(([n, c]) => c >= 2 && n.length > 4).sort((a, b) => b[1] - a[1]);
-    const used = new Set();
-    for (const [name] of candidates) { const a = findAlias(name, used, false); used.add(a); aliases.set(name, a); }
-    return aliases;
-  }
-
-  function genClassAliases(freq) {
-    const aliases = new Map();
-    const candidates = [...freq.entries()].filter(([n, c]) => c >= 2 && n.length > 3)
-      .sort((a, b) => (b[1] * b[0].length) - (a[1] * a[0].length));
-    const used = new Set();
-    for (const [name] of candidates) {
-      const alias = findClassAlias(name, used);
-      if (alias.length < name.length) { used.add(alias); aliases.set(name, alias); }
-    }
-    return aliases;
-  }
-
-  function findClassAlias(name, used) {
-    const segs = name.split(/[-:]/);
-    let a = segs.map(s => s[0] ?? '').join('');
-    if (a && !used.has(a) && a.length < name.length) return a;
-    const last = segs[segs.length - 1];
-    if (last.length > 1) { a = segs.map(s => s[0] ?? '').join('') + last[last.length - 1]; if (!used.has(a) && a.length < name.length) return a; }
-    if (segs[0].length >= 2) { a = segs[0].slice(0, 2) + segs.slice(1).map(s => s[0] ?? '').join(''); if (!used.has(a) && a.length < name.length) return a; }
-    for (let len = 2; len < name.length; len++) { a = name.replace(/[-:]/g, '').slice(0, len); if (!used.has(a) && a.length < name.length) return a; }
-    return name;
-  }
-
-  function findAlias(name, used, isComp) {
-    if (!isComp && name.startsWith('on') && name.length > 2) {
-      const ev = name.slice(2);
-      for (let i = ev.length - 1; i >= 0; i--) { const ch = ev[i].toLowerCase(); if (!used.has(ch)) return ch; }
-      for (let i = 0; i < ev.length - 1; i++) { const t = ev.slice(i, i + 2).toLowerCase(); if (!used.has(t)) return t; }
-    }
-    const fc = isComp ? name[0].toUpperCase() : name[0].toLowerCase();
-    if (!used.has(fc)) return fc;
-    let a = fc;
-    for (let i = 1; i < name.length; i++) { a += isComp ? name[i] : name[i].toLowerCase(); if (!used.has(a)) return a; }
-    return a;
-  }
-
-  function formatHeaders(aliases) {
-    const lines = [];
-    if (aliases.components.size > 0) lines.push('@C ' + [...aliases.components.entries()].map(([n, a]) => `${n}=${a}`).join(', '));
-    if (aliases.props.size > 0) lines.push('@P ' + [...aliases.props.entries()].map(([n, a]) => `${n}=${a}`).join(', '));
-    if (aliases.classes.size > 0) lines.push('@S ' + [...aliases.classes.entries()].map(([n, a]) => `${n}=${a}`).join(', '));
-    return lines.join('\n');
-  }
-
-  function emit(ast, aliases, code) {
-    const ctx = { ca: aliases?.components ?? new Map(), pa: aliases?.props ?? new Map(), sa: aliases?.classes ?? new Map(), code };
-    const lines = [];
-    for (const stmt of ast.program.body) collectJSX(stmt, (node) => emitNode(node, 0, lines, ctx));
-    return lines.join('\n');
-  }
-
-  function ind(l) { return ' '.repeat(l); }
-
-  function collectJSX(node, cb) {
-    if (!node) return;
-    if (node.type === 'JSXElement' || node.type === 'JSXFragment') { cb(node); return; }
-    if (node.type === 'ExpressionStatement') collectJSX(node.expression, cb);
-    else if (node.type === 'ReturnStatement') collectJSX(node.argument, cb);
-    else if (node.type === 'ParenthesizedExpression') collectJSX(node.expression, cb);
-    else if (node.type === 'ExportDefaultDeclaration' || node.type === 'ExportNamedDeclaration') collectJSX(node.declaration, cb);
-    else if (node.type === 'FunctionDeclaration' || node.type === 'FunctionExpression' || node.type === 'ArrowFunctionExpression') collectJSXBlock(node.body, cb);
-    else if (node.type === 'VariableDeclaration') { for (const d of node.declarations) if (d.init) collectJSX(d.init, cb); }
-  }
-
-  function collectJSXBlock(node, cb) {
-    if (!node) return;
-    if (node.type === 'BlockStatement') { for (const s of node.body) collectJSX(s, cb); }
-    else collectJSX(node, cb);
-  }
-
-  function getTagName(n, ca) { const raw = getRawTag(n); return ca.get(raw) ?? raw; }
-  function getRawTag(n) {
-    if (n.type === 'JSXIdentifier') return n.name;
-    if (n.type === 'JSXMemberExpression') return `${getRawTag(n.object)}.${n.property.name}`;
-    if (n.type === 'JSXNamespacedName') return `${n.namespace.name}:${n.name.name}`;
-    return 'unknown';
-  }
-
-  function emitNode(node, level, lines, ctx) {
-    if (node.type === 'JSXFragment') { lines.push(`${ind(level)}_`); for (const c of sigChildren(node.children)) emitNode(c, level + 1, lines, ctx); return; }
-    if (node.type === 'JSXText') { const t = node.value.trim(); if (t) lines.push(`${ind(level)}"${t}"`); return; }
-    if (node.type === 'JSXExpressionContainer') { emitExpr(node, level, lines, ctx); return; }
-    if (node.type === 'JSXSpreadChild') { lines.push(`${ind(level)}(...${ctx.code.slice(node.argument.start, node.argument.end)})`); return; }
-    if (node.type !== 'JSXElement') return;
-
-    const op = node.openingElement;
-    const tag = getTagName(op.name, ctx.ca);
-    let cls = null, idv = null;
-    const other = [];
-
-    for (const attr of op.attributes) {
-      if (attr.type === 'JSXSpreadAttribute') { other.push({ spread: true, node: attr }); continue; }
-      const pn = attr.name.type === 'JSXNamespacedName' ? `${attr.name.namespace.name}:${attr.name.name.name}` : attr.name.name;
-      if (pn === 'className') { cls = attrVal(attr, ctx.code); continue; }
-      if (pn === 'id') { idv = attrVal(attr, ctx.code); continue; }
-      other.push({ propName: pn, attr });
-    }
-
-    const hasSel = idv !== null || cls !== null;
-    let line = (tag === 'div' && hasSel) ? '' : tag;
-    if (idv) line += idv.type === 'string' ? `#${idv.value}` : `#{${idv.value}}`;
-    if (cls) {
-      if (cls.type === 'string') { for (const c of cls.value.split(/\s+/).filter(Boolean)) line += `.${ctx.sa.get(c) ?? c}`; }
-      else line += `.{${cls.value}}`;
-    }
-    const ps = fmtProps(other, ctx.pa, ctx.code);
-    if (ps) line += ` ${ps}`;
-
-    const children = sigChildren(node.children);
-    if (children.length === 0) { lines.push(`${ind(level)}${line}`); }
-    else if (children.length === 1 && isInline(children[0])) {
-      const c = children[0];
-      if (c.type === 'JSXText') lines.push(`${ind(level)}${line} "${c.value.trim()}"`);
-      else if (c.type === 'JSXExpressionContainer') {
-        const e = c.expression;
-        lines.push(`${ind(level)}${line} ${e.type === 'StringLiteral' ? `"${e.value}"` : `(${ctx.code.slice(e.start, e.end)})`}`);
-      }
-    } else {
-      lines.push(`${ind(level)}${line}`);
-      for (const c of children) emitNode(c, level + 1, lines, ctx);
-    }
-  }
-
-  function emitExpr(node, level, lines, ctx) {
-    const expr = node.expression;
-    if (!expr || expr.type === 'JSXEmptyExpression') return;
-    if (expr.type === 'LogicalExpression' && expr.operator === '&&' && isJSXN(expr.right)) {
-      const cond = ctx.code.slice(expr.left.start, expr.left.end);
-      const cl = []; emitNode(unwrap(expr.right), 0, cl, ctx);
-      lines.push(`${ind(level)}?${cond} > ${cl[0].trim()}`);
-      for (let i = 1; i < cl.length; i++) lines.push(`${ind(level)} ${cl[i]}`);
-      return;
-    }
-    if (expr.type === 'ConditionalExpression' && (isJSXN(expr.consequent) || isJSXN(expr.alternate))) {
-      const cond = ctx.code.slice(expr.test.start, expr.test.end);
-      const cn = unwrap(expr.consequent), al = unwrap(expr.alternate);
-      if (isJSXN(cn) && isJSXN(al)) {
-        const cl = []; emitNode(cn, 0, cl, ctx);
-        const al2 = []; emitNode(al, 0, al2, ctx);
-        lines.push(`${ind(level)}?${cond} > ${cl[0].trim()} | ${al2[0].trim()}`);
-        return;
-      }
-    }
-    if (isMap(expr)) { emitMap(expr, level, lines, ctx); return; }
-    lines.push(`${ind(level)}(${ctx.code.slice(expr.start, expr.end)})`);
-  }
-
-  function isMap(e) { return e.type === 'CallExpression' && e.callee.type === 'MemberExpression' && e.callee.property.name === 'map' && e.arguments.length >= 1; }
-
-  function emitMap(expr, level, lines, ctx) {
-    const coll = ctx.code.slice(expr.callee.object.start, expr.callee.object.end);
-    const jsx = getMapJSX(expr.arguments[0]);
-    if (jsx) {
-      const cl = []; emitNode(jsx, 0, cl, ctx);
-      lines.push(`${ind(level)}*${coll} > ${cl[0].trim()}`);
-      for (let i = 1; i < cl.length; i++) lines.push(`${ind(level)} ${cl[i]}`);
-    } else lines.push(`${ind(level)}(${ctx.code.slice(expr.start, expr.end)})`);
-  }
-
-  function getMapJSX(cb) {
-    if (!cb) return null;
-    if (cb.type === 'ArrowFunctionExpression' || cb.type === 'FunctionExpression') {
-      const b = cb.body;
-      if (b.type === 'JSXElement' || b.type === 'JSXFragment') return b;
-      if (b.type === 'ParenthesizedExpression') { const i = b.expression; if (i.type === 'JSXElement' || i.type === 'JSXFragment') return i; }
-      if (b.type === 'BlockStatement') { for (const s of b.body) { if (s.type === 'ReturnStatement' && s.argument) { const a = unwrap(s.argument); if (a.type === 'JSXElement' || a.type === 'JSXFragment') return a; } } }
-    }
-    return null;
-  }
-
-  function unwrap(n) { while (n && n.type === 'ParenthesizedExpression') n = n.expression; return n; }
-  function isJSXN(n) { const u = unwrap(n); return u && (u.type === 'JSXElement' || u.type === 'JSXFragment'); }
-  function sigChildren(children) { return children.filter(c => c.type === 'JSXText' ? c.value.trim().length > 0 : !(c.type === 'JSXExpressionContainer' && c.expression.type === 'JSXEmptyExpression')); }
-
-  function isInline(c) {
-    if (c.type === 'JSXText') return true;
-    if (c.type === 'JSXExpressionContainer') {
-      const e = c.expression;
-      if (e.type === 'LogicalExpression' && e.operator === '&&' && isJSXN(e.right)) return false;
-      if (e.type === 'ConditionalExpression' && (isJSXN(e.consequent) || isJSXN(e.alternate))) return false;
-      if (isMap(e)) return false;
-      if (isJSXN(e)) return false;
-      return true;
-    }
-    return false;
-  }
-
-  function attrVal(attr, code) {
-    const v = attr.value;
-    if (!v) return { type: 'boolean', value: true };
-    if (v.type === 'StringLiteral') return { type: 'string', value: v.value };
-    if (v.type === 'JSXExpressionContainer') {
-      const e = v.expression;
-      if (e.type === 'StringLiteral') return { type: 'string', value: e.value };
-      return { type: 'expression', value: code.slice(e.start, e.end) };
-    }
-    return { type: 'string', value: String(v.value ?? '') };
-  }
-
-  function fmtProps(props, pa, code) {
-    if (!props.length) return '';
-    const parts = [];
-    for (const p of props) {
-      if (p.spread) { parts.push(`...${code.slice(p.node.argument.start, p.node.argument.end)}`); continue; }
-      const alias = pa.get(p.propName) ?? p.propName;
-      const val = attrVal(p.attr, code);
-      if (val.type === 'boolean') { parts.push(alias); continue; }
-      parts.push(`${alias}:${val.value}`);
-    }
-    return `{${parts.join(', ')}}`;
-  }
-
-  function hasJSX(ast) {
-    let found = false;
-    const MAX_DEPTH = 200;
-    function walk(n, depth) {
-      if (found || !n || typeof n !== 'object' || depth > MAX_DEPTH) return;
-      if (n.type === 'JSXElement' || n.type === 'JSXFragment') { found = true; return; }
-      for (const k of Object.keys(n)) {
-        if (k === 'loc' || k === 'leadingComments' || k === 'trailingComments') continue;
-        const v = n[k];
-        if (Array.isArray(v)) for (const i of v) walk(i, depth + 1);
-        else if (v && typeof v === 'object' && v.type) walk(v, depth + 1);
-        if (found) return;
-      }
-    }
-    walk(ast.program, 0);
-    return found;
-  }
-
-  function encode(code) {
-    const ast = parseJSX(code);
-    const errors = ast.errors ?? [];
-    if (!hasJSX(ast)) return { output: code, errors };
-    const freq = analyze(ast);
-    const aliases = generateAliases(freq);
-    const headers = formatHeaders(aliases);
-    const body = emit(ast, aliases, code);
-    return { output: headers ? `${headers}\n\n${body}` : body, errors };
-  }
-
-  // --- Full file encoder ---
-
-  function encodeFile(code) {
-    const ast = parseJSX(code);
-    const errors = ast.errors ?? [];
-    if (!hasJSX(ast)) return { output: code, errors };
-
-    const sections = [];
-
-    // Directives ("use client", etc.)
-    for (const dir of ast.program.directives ?? []) {
-      sections.push(`"${dir.value.value}"`);
-    }
-
-    const imports = [], typeImports = [], rest = [];
-    for (const stmt of ast.program.body) {
-      if (stmt.type === 'ImportDeclaration') {
-        (stmt.importKind === 'type' ? typeImports : imports).push(stmt);
-      } else {
-        rest.push(stmt);
-      }
-    }
-
-    for (const imp of imports) sections.push(compressImport(imp));
-    for (const imp of typeImports) sections.push(compressTypeImport(imp));
-    for (const stmt of rest) {
-      const r = processStmt(stmt, code);
-      if (r !== null) sections.push(r);
-    }
-
-    return { output: sections.join('\n'), errors };
-  }
-
-  function compressImport(node) {
-    const src = node.source.value, specs = node.specifiers;
-    if (!specs.length) return `@I "${src}"`;
-    const parts = specs.map(s => {
-      if (s.type === 'ImportDefaultSpecifier') return `default ${s.local.name}`;
-      if (s.type === 'ImportNamespaceSpecifier') return `* as ${s.local.name}`;
-      if (s.importKind === 'type') return `type ${s.local.name}`;
-      if (s.imported.name !== s.local.name) return `${s.imported.name} as ${s.local.name}`;
-      return s.local.name;
-    });
-    return `@I ${src}: ${parts.join(', ')}`;
-  }
-
-  function compressTypeImport(node) {
-    const src = node.source.value, specs = node.specifiers;
-    if (!specs.length) return `@T "${src}"`;
-    const parts = specs.map(s => {
-      if (s.type === 'ImportDefaultSpecifier') return `default ${s.local.name}`;
-      if (s.imported.name !== s.local.name) return `${s.imported.name} as ${s.local.name}`;
-      return s.local.name;
-    });
-    return `@T ${src}: ${parts.join(', ')}`;
-  }
-
-  function processStmt(stmt, code) {
-    if (stmt.type === 'ExpressionStatement') {
-      const e = stmt.expression;
-      if (e.type === 'StringLiteral' || e.type === 'DirectiveLiteral') return `"${e.value}"`;
-      return code.slice(stmt.start, stmt.end);
-    }
-    if (stmt.type === 'TSInterfaceDeclaration') {
-      const body = code.slice(stmt.body.start, stmt.body.end);
-      if (stmt.extends?.length) {
-        const ext = stmt.extends.map(e => code.slice(e.start, e.end)).join(', ');
-        return `${stmt.id.name} extends ${ext} ${body}`;
-      }
-      return `${stmt.id.name} ${body}`;
-    }
-    if (stmt.type === 'TSTypeAliasDeclaration') {
-      return `${stmt.id.name} = ${code.slice(stmt.typeAnnotation.start, stmt.typeAnnotation.end)}`;
-    }
-    if (stmt.type === 'ExportDefaultDeclaration') {
-      const d = stmt.declaration;
-      if (d?.type === 'FunctionDeclaration') return processComp(d, code, 'export default ');
-      if (d?.type === 'ArrowFunctionExpression' || d?.type === 'FunctionExpression') return processComp(d, code, 'export default ');
-      return code.slice(stmt.start, stmt.end);
-    }
-    if (stmt.type === 'ExportNamedDeclaration') {
-      const d = stmt.declaration;
-      if (d?.type === 'FunctionDeclaration') return processComp(d, code, 'export ');
-      if (d?.type === 'VariableDeclaration') return processVarDecl(d, code, 'export ');
-      return code.slice(stmt.start, stmt.end);
-    }
-    if (stmt.type === 'FunctionDeclaration') return processComp(stmt, code, '');
-    if (stmt.type === 'VariableDeclaration') return processVarDecl(stmt, code, '');
-    return code.slice(stmt.start, stmt.end);
-  }
-
-  function processVarDecl(stmt, code, prefix) {
-    if (stmt.declarations.length === 1) {
-      const d = stmt.declarations[0];
-      if (d.id.type === 'Identifier' && d.init && (d.init.type === 'ArrowFunctionExpression' || d.init.type === 'FunctionExpression')) {
-        if (containsJSXNode(d.init)) return processComp(d.init, code, prefix, d.id.name);
-      }
-    }
-    return prefix + code.slice(stmt.start, stmt.end).replace(/^(const|let|var)\s+/, '');
-  }
-
-  function containsJSXNode(node, depth = 0) {
-    if (!node || typeof node !== 'object' || depth > 200) return false;
-    if (node.type === 'JSXElement' || node.type === 'JSXFragment') return true;
-    for (const k of Object.keys(node)) {
-      if (k === 'loc' || k === 'leadingComments' || k === 'trailingComments') continue;
-      const v = node[k];
-      if (Array.isArray(v)) { for (const i of v) if (containsJSXNode(i, depth + 1)) return true; }
-      else if (v && typeof v === 'object' && v.type && containsJSXNode(v, depth + 1)) return true;
-    }
-    return false;
-  }
-
-  function processComp(fn, code, prefix, forceName) {
-    const body = fn.body;
-    if (!body) return prefix + code.slice(fn.start, fn.end);
-
-    if (body.type === 'JSXElement' || body.type === 'JSXFragment') {
-      const sig = buildSig(fn, code, prefix, forceName);
-      const jsxn = encodeJSXSlice(body, code);
-      return `${sig}\n  ---\n${jsxn.split('\n').map(l => l ? '  ' + l : '').join('\n')}`;
-    }
-
-    if (body.type !== 'BlockStatement' || !containsJSXNode(fn)) {
-      return prefix + code.slice(fn.start, fn.end);
-    }
-
-    const sig = buildSig(fn, code, prefix, forceName);
-    const hooks = [], logic = [];
-    let jsxNode = null;
-
-    for (const s of body.body) {
-      if (s.type === 'ReturnStatement') {
-        jsxNode = findReturnJSX(s);
-        if (!jsxNode) logic.push('  ' + code.slice(s.start, s.end));
-        continue;
-      }
-      const h = tryHook(s, code);
-      if (h !== null) { hooks.push('  ' + h); continue; }
-      logic.push('  ' + code.slice(s.start, s.end).replace(/^(const|let|var)\s+/, ''));
-    }
-
-    const parts = [sig];
-    if (hooks.length) parts.push(hooks.join('\n'));
-    if (logic.length) { if (hooks.length) parts.push(''); parts.push(logic.join('\n')); }
-    if (jsxNode) {
-      parts.push('  ---');
-      const jsxn = encodeJSXSlice(jsxNode, code);
-      parts.push(jsxn.split('\n').map(l => l ? '  ' + l : '').join('\n'));
-    }
-    return parts.join('\n');
-  }
-
-  function buildSig(fn, code, prefix, forceName) {
-    const name = forceName || (fn.id ? fn.id.name : '');
-    const ps = fn.params.length ? '(' + fn.params.map(p => {
-      if (p.typeAnnotation && p.type === 'Identifier') return p.name;
-      return code.slice(p.start, p.end);
-    }).join(', ') + ')' : '()';
-    return `${prefix}${name}${ps}`;
-  }
-
-  function tryHook(stmt, code) {
-    if (stmt.type === 'VariableDeclaration' && stmt.declarations.length === 1) {
-      const d = stmt.declarations[0], init = d.init;
-      if (!init || init.type !== 'CallExpression') return null;
-      const cn = init.callee.type === 'Identifier' ? init.callee.name : null;
-      if (!cn) return null;
-      if (cn === 'useState') {
-        let name;
-        if (d.id.type === 'ArrayPattern' && d.id.elements.length >= 1) name = d.id.elements[0].name;
-        else if (d.id.type === 'Identifier') name = d.id.name;
-        else return null;
-        return `@state ${name} = ${init.arguments.length ? code.slice(init.arguments[0].start, init.arguments[0].end) : 'undefined'}`;
-      }
-      if (cn === 'useRef') {
-        const name = d.id.type === 'Identifier' ? d.id.name : code.slice(d.id.start, d.id.end);
-        return `@ref ${name} = ${init.arguments.length ? code.slice(init.arguments[0].start, init.arguments[0].end) : 'undefined'}`;
-      }
-      if (cn.startsWith('use') && cn.length > 3) {
-        const name = d.id.type === 'Identifier' ? d.id.name : code.slice(d.id.start, d.id.end);
-        return `${name} = ${cn}${code.slice(init.start + cn.length, init.end)}`;
-      }
-    }
-    if (stmt.type === 'ExpressionStatement' && stmt.expression.type === 'CallExpression') {
-      const cn = stmt.expression.callee.type === 'Identifier' ? stmt.expression.callee.name : null;
-      if (cn && cn.startsWith('use') && cn.length > 3) return code.slice(stmt.start, stmt.end);
-    }
-    return null;
-  }
-
-  function findReturnJSX(stmt) {
-    if (!stmt.argument) return null;
-    let n = stmt.argument;
-    while (n && n.type === 'ParenthesizedExpression') n = n.expression;
-    if (n.type === 'JSXElement' || n.type === 'JSXFragment') return n;
-    return null;
-  }
-
-  function encodeJSXSlice(jsxNode, code) {
-    const src = code.slice(jsxNode.start, jsxNode.end);
-    const ast = parseJSX(src);
-    const freq = analyze(ast);
-    const aliases = generateAliases(freq);
-    const headers = formatHeaders(aliases);
-    const body = emit(ast, aliases, src);
-    return headers ? `${headers}\n\n${body}` : body;
-  }
-
-  // --- Token estimation ---
-  // Approximate token count (~4 chars/token, standard LLM heuristic)
-  function estimateTokens(text) {
-    if (!text) return 0;
-    return Math.ceil(text.length / 4);
-  }
-
-  // --- JSXN syntax highlighter ---
-
-  function esc(s) {
-    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  }
-
-  function highlightJSXN(text) {
-    return text.split('\n').map(highlightLine).join('\n');
-  }
-
-  function highlightLine(line) {
-    // Alias header lines: @C, @P, @S
-    if (/^\s*@[CPS]\s/.test(line)) {
-      return line.replace(/^(\s*@[CPS])\s(.*)$/, (_, prefix, rest) => {
-        const pairs = rest.replace(/([A-Za-z][A-Za-z0-9.\-]*)=([A-Za-z][A-Za-z0-9]*)/g,
-          (__, name, alias) => `<span class="jsxn-alias-name">${esc(name)}</span>=<span class="jsxn-alias-val">${esc(alias)}</span>`
-        );
-        return `<span class="jsxn-header">${esc(prefix)}</span> ${pairs}`;
-      });
-    }
-
-    // Import lines: @I pkg: A, B, C
-    if (/^\s*@[IT]\s/.test(line)) {
-      return line.replace(/^(\s*@[IT])\s(.*)$/, (_, prefix, rest) => {
-        return `<span class="jsxn-header">${esc(prefix)}</span> ${esc(rest)}`;
-      });
-    }
-
-    // Hook shorthand: @state, @ref
-    if (/^\s*@(state|ref)\s/.test(line)) {
-      return line.replace(/^(\s*)(@(?:state|ref))\s(.*)$/, (_, ws, keyword, rest) => {
-        return `${ws}<span class="jsxn-header">${esc(keyword)}</span> ${esc(rest)}`;
-      });
-    }
-
-    // Separator: ---
-    if (/^\s*---\s*$/.test(line)) {
-      const ws = line.match(/^(\s*)/)[1];
-      return `${ws}<span class="jsxn-header">---</span>`;
-    }
-
-    // Empty / whitespace-only
-    if (!line.trim()) return '';
-
-    const indent = line.match(/^(\s*)/)[1];
-    const content = line.slice(indent.length);
-
-    // Fragment _
-    if (content === '_') {
-      return `${indent}<span class="jsxn-fragment">_</span>`;
-    }
-
-    // Conditional: ?cond > ...
-    if (content.startsWith('?')) {
-      const m = content.match(/^\?(.+?)\s*>\s*(.*)$/);
-      if (m) {
-        const afterChevron = m[2];
-        const pipeIdx = findTopLevelPipe(afterChevron);
-        if (pipeIdx >= 0) {
-          const left = afterChevron.slice(0, pipeIdx).trim();
-          const right = afterChevron.slice(pipeIdx + 1).trim();
-          return `${indent}<span class="jsxn-cond">?</span><span class="jsxn-expr">${esc(m[1])}</span> <span class="jsxn-chevron">&gt;</span> ${highlightTagPart(left)} <span class="jsxn-pipe">|</span> ${highlightTagPart(right)}`;
-        }
-        return `${indent}<span class="jsxn-cond">?</span><span class="jsxn-expr">${esc(m[1])}</span> <span class="jsxn-chevron">&gt;</span> ${highlightTagPart(afterChevron)}`;
-      }
-    }
-
-    // Map: *collection > ...
-    if (content.startsWith('*')) {
-      const m = content.match(/^\*(.+?)\s*>\s*(.*)$/);
-      if (m) {
-        return `${indent}<span class="jsxn-map">*</span><span class="jsxn-expr">${esc(m[1])}</span> <span class="jsxn-chevron">&gt;</span> ${highlightTagPart(m[2])}`;
-      }
-    }
-
-    // Pure string line: "text"
-    if (/^".*"$/.test(content)) {
-      return `${indent}<span class="jsxn-string">${esc(content)}</span>`;
-    }
-
-    // Pure expression line: (expr)
-    if (content.startsWith('(') && content.endsWith(')')) {
-      return `${indent}<span class="jsxn-expr">${esc(content)}</span>`;
-    }
-
-    // Tag line: tag#id.class.class {props} "text" or (expr)
-    return indent + highlightTagPart(content);
-  }
-
-  function highlightTagPart(s) {
-    // Break into: tagWithSelectors + optional props + optional trailing string/expr
-    let rest = s;
-    let result = '';
-
-    // 1. Extract tag + #id + .classes (everything before first space or {)
-    const selectorEnd = rest.search(/[\s{]/);
-    const selectorPart = selectorEnd === -1 ? rest : rest.slice(0, selectorEnd);
-    rest = selectorEnd === -1 ? '' : rest.slice(selectorEnd);
-
-    // Highlight selector: tag#id.class1.class2
-    result += highlightSelector(selectorPart);
-
-    if (!rest) return result;
-
-    // 2. If starts with space then {, it's props
-    const trimmed = rest;
-    const braceStart = trimmed.indexOf('{');
-
-    if (braceStart >= 0) {
-      // Everything before the brace is whitespace
-      result += esc(trimmed.slice(0, braceStart));
-      // Find matching close brace
-      const braceEnd = findMatchingBrace(trimmed, braceStart);
-      if (braceEnd >= 0) {
-        const propsBlock = trimmed.slice(braceStart, braceEnd + 1);
-        result += highlightProps(propsBlock);
-        rest = trimmed.slice(braceEnd + 1);
-      } else {
-        result += esc(trimmed.slice(braceStart));
-        rest = '';
-      }
-    } else {
-      rest = trimmed;
-    }
-
-    // 3. Trailing string "..." or expression (...)
-    if (rest.trim()) {
-      const tr = rest.trimStart();
-      const space = rest.slice(0, rest.length - tr.length);
-      if (tr.startsWith('"')) {
-        result += `${esc(space)}<span class="jsxn-string">${esc(tr)}</span>`;
-      } else if (tr.startsWith('(')) {
-        result += `${esc(space)}<span class="jsxn-expr">${esc(tr)}</span>`;
-      } else {
-        result += esc(rest);
-      }
-    }
-
-    return result;
-  }
-
-  function highlightSelector(s) {
-    // Split on # and . keeping delimiters
-    const tokens = s.split(/(?=[#.])/);
-    let out = '';
-    for (let i = 0; i < tokens.length; i++) {
-      const tok = tokens[i];
-      if (tok.startsWith('#')) {
-        out += `<span class="jsxn-id">${esc(tok)}</span>`;
-      } else if (tok.startsWith('.')) {
-        out += `<span class="jsxn-class">${esc(tok)}</span>`;
-      } else {
-        out += `<span class="jsxn-tag">${esc(tok)}</span>`;
-      }
-    }
-    return out;
-  }
-
-  function highlightProps(block) {
-    // {key:val, key:val, ...spread}
-    const inner = block.slice(1, -1);
-    let result = '<span class="jsxn-prop-brace">{</span>';
-
-    // Split by top-level commas
-    const parts = splitTopLevel(inner, ',');
-    for (let i = 0; i < parts.length; i++) {
-      if (i > 0) result += '<span class="jsxn-prop-brace">, </span>';
-      const part = parts[i].trim();
-      if (part.startsWith('...')) {
-        result += `<span class="jsxn-spread">${esc(part)}</span>`;
-      } else {
-        const colonIdx = part.indexOf(':');
-        if (colonIdx >= 0) {
-          const key = part.slice(0, colonIdx);
-          const val = part.slice(colonIdx + 1);
-          result += `<span class="jsxn-prop-key">${esc(key)}</span>:<span class="jsxn-prop-val">${esc(val)}</span>`;
-        } else {
-          // Boolean prop
-          result += `<span class="jsxn-prop-key">${esc(part)}</span>`;
-        }
-      }
-    }
-
-    result += '<span class="jsxn-prop-brace">}</span>';
-    return result;
-  }
-
-  function findMatchingBrace(s, start) {
-    let depth = 0;
-    for (let i = start; i < s.length; i++) {
-      if (s[i] === '{') depth++;
-      else if (s[i] === '}') { depth--; if (depth === 0) return i; }
-    }
-    return -1;
-  }
-
-  function splitTopLevel(s, sep) {
-    const parts = [];
-    let depth = 0;
-    let current = '';
-    for (let i = 0; i < s.length; i++) {
-      const ch = s[i];
-      if (ch === '(' || ch === '{' || ch === '[') depth++;
-      else if (ch === ')' || ch === '}' || ch === ']') depth--;
-      if (ch === sep && depth === 0) {
-        parts.push(current);
-        current = '';
-      } else {
-        current += ch;
-      }
-    }
-    if (current) parts.push(current);
-    return parts;
-  }
-
-  function findTopLevelPipe(s) {
-    let depth = 0;
-    for (let i = 0; i < s.length; i++) {
-      const ch = s[i];
-      if (ch === '(' || ch === '{' || ch === '[') depth++;
-      else if (ch === ')' || ch === '}' || ch === ']') depth--;
-      if (ch === '|' && depth === 0) return i;
-    }
-    return -1;
-  }
-
-  // --- UI ---
-
-  const EXAMPLES = [
-    {
-      name: 'Tailwind Dashboard',
-      fullFile: true,
-      code: `import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Avatar } from "@/components/ui/avatar"
-
-interface Stat {
-  label: string
-  value: string
-}
-
-interface Activity {
-  title: string
-  time: string
-  status: string
-}
-
-interface DashboardProps {
-  user: { name: string; avatar: string }
-  initialStats: Stat[]
-  initialActivities: Activity[]
-}
-
-export default function Dashboard({ user, initialStats, initialActivities }: DashboardProps) {
-  const [stats] = useState(initialStats)
-  const [activities] = useState(initialActivities)
-
-  return (
-    <div className="flex flex-col min-h-screen bg-gray-50">
-      <header className="flex items-center justify-between px-6 py-4 bg-white shadow-sm">
-        <h1 className="text-xl font-bold text-gray-900">Dashboard</h1>
-        <div className="flex items-center gap-3">
-          <Button className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
-            New Project
-          </Button>
-          <Avatar className="w-8 h-8 rounded-full" src={user.avatar} />
-        </div>
-      </header>
-      <main className="flex-1 p-6">
-        <div className="grid grid-cols-3 gap-6 mb-8">
-          {stats.map(stat => (
-            <div className="p-6 bg-white rounded-lg shadow-sm">
-              <p className="text-sm font-medium text-gray-500">{stat.label}</p>
-              <p className="mt-2 text-3xl font-bold text-gray-900">{stat.value}</p>
-            </div>
-          ))}
-        </div>
-        <div className="bg-white rounded-lg shadow-sm">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h2 className="text-lg font-medium text-gray-900">Recent Activity</h2>
-          </div>
-          <ul className="divide-y divide-gray-200">
-            {activities.map(item => (
-              <li className="flex items-center justify-between px-6 py-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-gray-200" />
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">{item.title}</p>
-                    <p className="text-sm text-gray-500">{item.time}</p>
-                  </div>
-                </div>
-                <span className="px-2 py-1 text-xs font-medium text-green-700 bg-green-100 rounded-full">
-                  {item.status}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </main>
+<div class="content">
+
+  <div class="section" id="transforms">
+    <h2>Each line, compressed</h2>
+    <p class="subtext">7 deterministic transforms, top to bottom. Nothing is lost.</p>
+    <div class="transform-grid" id="transform-grid"></div>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat">
+      <div class="number">~40%</div>
+      <div class="label">fewer tokens</div>
     </div>
-  )
-}`,
-    },
-    {
-      name: 'Simple HTML',
-      code: `function LandingPage() {
-  return (
-    <div id="root">
-      <nav>
-        <a href="/">Home</a>
-        <a href="/about">About</a>
-        <a href="/contact">Contact</a>
-      </nav>
-      <main>
-        <h1>Welcome to our site</h1>
-        <p>This is a simple landing page with basic HTML elements.</p>
-        <form>
-          <label>Email</label>
-          <input type="email" placeholder="you@example.com" />
-          <label>Password</label>
-          <input type="password" placeholder="Enter password" />
-          <button type="submit">Sign In</button>
-        </form>
-        <img src="hero.jpg" alt="Hero image" />
-      </main>
-      <footer>
-        <p>Copyright 2024</p>
-      </footer>
+    <div class="stat">
+      <div class="number">7</div>
+      <div class="label">transforms</div>
     </div>
-  );
-}`,
-    },
-    {
-      name: 'Conditionals',
-      fullFile: true,
-      code: `import { Spinner } from "@/components/ui/spinner"
-import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert"
-import { Avatar } from "@/components/ui/avatar"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { EmptyState } from "@/components/ui/empty-state"
-import type { User } from "@/types"
-
-interface UserProfileProps {
-  user: User | null
-  isLoading: boolean
-  error: Error | null
-  onClearError: () => void
-  onLogin: () => void
-}
-
-export default function UserProfile({ user, isLoading, error, onClearError, onLogin }: UserProfileProps) {
-  return (
-    <div className="profile-container">
-      {isLoading && (
-        <Spinner size="large" />
-      )}
-      {error && (
-        <Alert type="error" onDismiss={onClearError}>
-          <AlertTitle>Something went wrong</AlertTitle>
-          <AlertDescription>{error.message}</AlertDescription>
-        </Alert>
-      )}
-      {user ? (
-        <div className="profile-card">
-          <Avatar src={user.avatar} size="xl" />
-          <h2 className="profile-name">{user.name}</h2>
-          <p className="profile-bio">{user.bio}</p>
-          {user.isAdmin ? (
-            <Badge variant="admin">Admin</Badge>
-          ) : (
-            <Badge variant="user">User</Badge>
-          )}
-        </div>
-      ) : (
-        <EmptyState
-          title="No user found"
-          description="Please log in to view your profile"
-          action={<Button onClick={onLogin}>Log In</Button>}
-        />
-      )}
+    <div class="stat">
+      <div class="number">0</div>
+      <div class="label">information lost</div>
     </div>
-  );
-}`,
-    },
-    {
-      name: 'Form + Validation',
-      fullFile: true,
-      code: `"use client"
+  </div>
 
-import { useState } from "react"
-import { FormField } from "@/components/ui/form-field"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
-
-interface CheckoutFormProps {
-  onSubmit: (values: Record<string, string>) => Promise<void>
-}
-
-export default function CheckoutForm({ onSubmit }: CheckoutFormProps) {
-  const [values, setValues] = useState({ name: "", email: "", card: "", expiry: "", cvc: "" })
-  const [errors, setErrors] = useState<Record<string, string>>({})
-  const [isProcessing, setIsProcessing] = useState(false)
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setValues(prev => ({ ...prev, [e.target.name]: e.target.value }))
-  }
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsProcessing(true)
-    await onSubmit(values)
-    setIsProcessing(false)
-  }
-
-  return (
-    <form className="checkout-form" onSubmit={handleSubmit}>
-      <FormField label="Full Name" error={errors.name}>
-        <Input name="name" value={values.name} onChange={handleChange} placeholder="John Doe" />
-      </FormField>
-      <FormField label="Email" error={errors.email}>
-        <Input name="email" type="email" value={values.email} onChange={handleChange} placeholder="john@example.com" />
-      </FormField>
-      <FormField label="Card Number" error={errors.card}>
-        <Input name="card" value={values.card} onChange={handleChange} placeholder="4242 4242 4242 4242" />
-      </FormField>
-      <div className="checkout-row">
-        <FormField label="Expiry" error={errors.expiry}>
-          <Input name="expiry" value={values.expiry} onChange={handleChange} placeholder="MM/YY" />
-        </FormField>
-        <FormField label="CVC" error={errors.cvc}>
-          <Input name="cvc" value={values.cvc} onChange={handleChange} placeholder="123" />
-        </FormField>
-      </div>
-      <Button type="submit" disabled={isProcessing} className="checkout-btn">
-        {isProcessing ? "Processing..." : "Pay Now"}
-      </Button>
-    </form>
-  )
-}`,
-    },
-    {
-      name: 'Full File',
-      fullFile: true,
-      code: `"use client"
-
-import React, { useState, useEffect, useCallback, useMemo } from "react"
-import { useRouter } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { Card, CardHeader, CardBody } from "@/components/ui/card"
-import type { Product } from "@/types"
-
-interface ProductListProps {
-  initialProducts: Product[]
-}
-
-export default function ProductList({ initialProducts }: ProductListProps) {
-  const router = useRouter()
-  const [products, setProducts] = useState(initialProducts)
-  const [search, setSearch] = useState("")
-  const [isLoading, setIsLoading] = useState(false)
-
-  const filteredProducts = useMemo(() => {
-    return products.filter(p => p.name.includes(search));
-  }, [products, search])
-
-  const handleDelete = useCallback(async (id: string) => {
-    await fetch("/api/products/" + id, { method: "DELETE" });
-    setProducts(prev => prev.filter(p => p.id !== id));
-  }, [])
-
-  useEffect(() => {
-    setIsLoading(true)
-    fetch("/api/products").then(r => r.json()).then(setProducts).finally(() => setIsLoading(false))
-  }, [])
-
-  return (
-    <div className="flex flex-col gap-6 p-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Products</h1>
-        <Button onClick={() => router.push("/products/new")}>Add Product</Button>
-      </div>
-      <div className="flex flex-col gap-4">
-        {filteredProducts.map(product => (
-          <Card key={product.id}>
-            <CardHeader>
-              <h2 className="text-lg font-bold">{product.name}</h2>
-            </CardHeader>
-            <CardBody>
-              <p className="text-sm text-gray-500">{product.description}</p>
-              <div className="flex items-center gap-2 mt-4">
-                <Button onClick={() => handleDelete(product.id)}>Delete</Button>
-              </div>
-            </CardBody>
-          </Card>
-        ))}
+  <div class="section">
+    <h2>Get started</h2>
+    <div class="install-group">
+      <div class="install-label">Claude Code</div>
+      <div class="install-wrap">
+        <div class="install-block">claude mcp add jsx-notation -- npx jsx-notation-mcp</div>
+        <button class="copy-btn" onclick="copyBlock(this)">Copy</button>
       </div>
     </div>
-  )
-}`,
-    },
-    {
-      name: 'Component Heavy',
-      fullFile: true,
-      code: `import { useState, useCallback } from "react"
-import { Layout } from "@/components/layout"
-import { Sidebar } from "@/components/sidebar"
-import { NavItem } from "@/components/nav-item"
-import { Content } from "@/components/content"
-import { PageHeader } from "@/components/page-header"
-import { Card, CardHeader, CardTitle, CardBody, CardFooter } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { OrderRow } from "@/components/order-row"
-import { HomeIcon, SettingsIcon, ProfileIcon } from "@/components/icons"
-import type { Order } from "@/types"
+    <div class="install-group">
+      <div class="install-label">Cursor &mdash; <code>~/.cursor/mcp.json</code></div>
+      <div class="install-wrap">
+        <div class="install-block">{
+  "mcpServers": {
+    "jsx-notation": {
+      "command": "npx",
+      "args": ["jsx-notation-mcp"]
+    }
+  }
+}</div>
+        <button class="copy-btn" onclick="copyBlock(this)">Copy</button>
+      </div>
+    </div>
+    <div class="install-group">
+      <div class="install-label">VS Code Copilot &mdash; <code>.vscode/mcp.json</code></div>
+      <div class="install-wrap">
+        <div class="install-block">{
+  "servers": {
+    "jsx-notation": {
+      "command": "npx",
+      "args": ["jsx-notation-mcp"]
+    }
+  }
+}</div>
+        <button class="copy-btn" onclick="copyBlock(this)">Copy</button>
+      </div>
+    </div>
+  </div>
 
-interface AppProps {
-  initialOrders: Order[]
+  <div class="bottom-links">
+    <a href="editor.html">Try the encoder &rarr;</a>
+    <a href="https://github.com/SebastianMaciel/jsx-notation" target="_blank" rel="noopener noreferrer">GitHub &rarr;</a>
+  </div>
+
+</div>
+
+<script>
+// ── Initial JSX lines (IDs 0-29) ──────────────────────────
+const INIT = [
+  'import { useState, useRef } from "react";',
+  'import { Button } from "./components/Button";',
+  'import type { Task } from "./types";',
+  '',
+  'export default function TaskList({ title }: { title: string }) {',
+  '  const [tasks, setTasks] = useState<Task[]>([]);',
+  '  const [filter, setFilter] = useState("all");',
+  '  const inputRef = useRef<HTMLInputElement>(null);',
+  '',
+  '  const visible = tasks.filter(t => filter === "all" || t.status === filter);',
+  '',
+  '  return (',
+  '    <div className="task-container">',
+  '      <h2 className="task-title">{title}</h2>',
+  '      <input ref={inputRef} className="task-input" placeholder="Add task..." />',
+  '      <div className="task-actions">',
+  '        <Button onClick={() => addTask()} variant="primary">Add</Button>',
+  '        <Button onClick={() => setTasks([])} variant="ghost">Clear</Button>',
+  '      </div>',
+  '      <ul className="task-list">',
+  '        {visible.map(task => (',
+  '          <li key={task.id} className="task-item">',
+  '            <span>{task.text}</span>',
+  '            {task.done && <span className="task-done">Done</span>}',
+  '          </li>',
+  '        ))}',
+  '      </ul>',
+  '    </div>',
+  '  );',
+  '}',
+];
+
+// ── Mutation queue ─────────────────────────────────────────
+// Each mutation: { delay, changes:[[id,newText]], removes:[id], inserts:[[afterId,text]] }
+const M = [
+  // Imports                                          tokens after
+  { d:2500, c:[[0,'@I react: useState, useRef']],              t:188 },
+  { d:220,  c:[[1,'@I ./components/Button: Button']],          t:183 },
+  { d:220,  c:[[2,'@T ./types: Task']],                        t:179 },
+  // Signature
+  { d:700,  c:[[4,'export default TaskList({ title })']],      t:172 },
+  // Hooks
+  { d:500,  c:[[5,'  @state tasks = []']],                     t:167 },
+  { d:220,  c:[[6,'  @state filter = "all"']],                 t:163 },
+  { d:220,  c:[[7,'  @ref inputRef = null']],                  t:160 },
+  // Logic
+  { d:500,  c:[[9,'  visible = tasks.filter(t => filter === "all" || t.status === filter);']], t:159 },
+  // Separator: empty→---, remove "return ("
+  { d:500,  c:[[10,'  ---']], r:[11],                          t:155 },
+  // JSX body tags
+  { d:350,  c:[[12,'  div.task-container']],                   t:151 },
+  { d:250,  c:[[13,'    h2.task-title (title)']],              t:146 },
+  { d:250,  c:[[14,'    input {ref:inputRef, placeholder:"Add task..."}.task-input']], t:143 },
+  { d:250,  c:[[15,'    div.task-actions']],                   t:140 },
+  // Buttons → B aliases + @C header + remove </div>
+  { d:250,  i:[[2,'@C Button=B']], c:[[16,'      B {onClick:() => addTask(), variant:"primary"} "Add"'],[17,'      B {onClick:() => setTasks([]), variant:"ghost"} "Clear"']], r:[18], t:132 },
+  // List section
+  { d:250,  c:[[19,'    ul.task-list']],                       t:129 },
+  { d:250,  c:[[20,'      *visible > li {key:task.id}.task-item']], r:[21], t:125 },
+  { d:220,  c:[[22,'        span (task.text)']],               t:121 },
+  { d:220,  c:[[23,'        ?task.done > span.task-done "Done"']], r:[24,25,26,27,28,29], t:116 },
+];
+
+// ── State ──────────────────────────────────────────────────
+let lines = [];      // [{id, text}]
+let elMap = {};      // id → DOM element
+let nextId = 30;
+let curTokens = 195;
+const codeEl = document.getElementById('code');
+const tokCur = document.getElementById('tok-cur');
+const savingsEl = document.getElementById('savings');
+
+// ── JSXN highlighter (from index.html) ────────────────────
+function esc(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
-export default function App({ initialOrders }: AppProps) {
-  const [orders, setOrders] = useState(initialOrders)
-  const [page, setPage] = useState(1)
+function hlLine(line) {
+  if (/^\s*@[CPS]\s/.test(line)) {
+    return line.replace(/^(\s*@[CPS])\s(.*)$/, (_,pre,rest) => {
+      const pairs = rest.replace(/([A-Za-z][\w.\-]*)=([A-Za-z]\w*)/g,
+        (__,n,a) => `<span class="jsxn-alias-name">${esc(n)}</span>=<span class="jsxn-alias-val">${esc(a)}</span>`);
+      return `<span class="jsxn-header">${esc(pre)}</span> ${pairs}`;
+    });
+  }
+  if (/^\s*@[IT]\s/.test(line)) {
+    return line.replace(/^(\s*@[IT])\s(.*)$/, (_,pre,rest) =>
+      `<span class="jsxn-header">${esc(pre)}</span> ${esc(rest)}`);
+  }
+  if (/^\s*@(state|ref)\s/.test(line)) {
+    return line.replace(/^(\s*)(@(?:state|ref))\s(.*)$/, (_,ws,kw,rest) =>
+      `${ws}<span class="jsxn-header">${esc(kw)}</span> ${esc(rest)}`);
+  }
+  if (/^\s*---\s*$/.test(line)) {
+    const ws = line.match(/^(\s*)/)[1];
+    return `${ws}<span class="jsxn-header">---</span>`;
+  }
+  if (!line.trim()) return '';
+  const indent = line.match(/^(\s*)/)[1];
+  const content = line.slice(indent.length);
+  if (content === '_') return `${indent}<span class="jsxn-fragment">_</span>`;
 
-  const handleSelect = useCallback((id: string) => {
-    console.log("selected", id)
-  }, [])
+  if (content.startsWith('?')) {
+    const m = content.match(/^\?(.+?)\s*>\s*(.*)$/);
+    if (m) {
+      const after = m[2], pi = ftlp(after);
+      if (pi >= 0) {
+        return `${indent}<span class="jsxn-cond">?</span><span class="jsxn-expr">${esc(m[1])}</span> <span class="jsxn-chevron">&gt;</span> ${hlTag(after.slice(0,pi).trim())} <span class="jsxn-pipe">|</span> ${hlTag(after.slice(pi+1).trim())}`;
+      }
+      return `${indent}<span class="jsxn-cond">?</span><span class="jsxn-expr">${esc(m[1])}</span> <span class="jsxn-chevron">&gt;</span> ${hlTag(after)}`;
+    }
+  }
+  if (content.startsWith('*')) {
+    const m = content.match(/^\*(.+?)\s*>\s*(.*)$/);
+    if (m) return `${indent}<span class="jsxn-map">*</span><span class="jsxn-expr">${esc(m[1])}</span> <span class="jsxn-chevron">&gt;</span> ${hlTag(m[2])}`;
+  }
+  if (/^".*"$/.test(content)) return `${indent}<span class="jsxn-string">${esc(content)}</span>`;
+  if (content.startsWith('(') && content.endsWith(')')) return `${indent}<span class="jsxn-expr">${esc(content)}</span>`;
+  return indent + hlTag(content);
+}
 
-  const handleDelete = useCallback((id: string) => {
-    setOrders(prev => prev.filter(o => o.id !== id))
-  }, [])
+function hlTag(s) {
+  let rest = s, result = '';
+  const se = rest.search(/[\s{]/);
+  const sp = se===-1 ? rest : rest.slice(0,se);
+  rest = se===-1 ? '' : rest.slice(se);
+  result += hlSel(sp);
+  if (!rest) return result;
+  const bi = rest.indexOf('{');
+  if (bi >= 0) {
+    result += esc(rest.slice(0,bi));
+    const be = fmb(rest,bi);
+    if (be >= 0) { result += hlProps(rest.slice(bi,be+1)); rest = rest.slice(be+1); }
+    else { result += esc(rest.slice(bi)); rest = ''; }
+  }
+  if (rest.trim()) {
+    const tr = rest.trimStart(), sp2 = rest.slice(0,rest.length-tr.length);
+    if (tr.startsWith('"')) result += `${esc(sp2)}<span class="jsxn-string">${esc(tr)}</span>`;
+    else if (tr.startsWith('(')) result += `${esc(sp2)}<span class="jsxn-expr">${esc(tr)}</span>`;
+    else result += esc(rest);
+  }
+  return result;
+}
 
-  const loadMore = useCallback(async () => {
-    const res = await fetch("/api/orders?page=" + (page + 1))
-    const next = await res.json()
-    setOrders(prev => [...prev, ...next])
-    setPage(p => p + 1)
-  }, [page])
+function hlSel(s) {
+  return s.split(/(?=[#.])/).map(t =>
+    t.startsWith('#') ? `<span class="jsxn-id">${esc(t)}</span>` :
+    t.startsWith('.') ? `<span class="jsxn-class">${esc(t)}</span>` :
+    `<span class="jsxn-tag">${esc(t)}</span>`
+  ).join('');
+}
 
-  const handleReset = useCallback(() => {
-    setOrders(initialOrders)
-    setPage(1)
-  }, [initialOrders])
+function hlProps(block) {
+  const inner = block.slice(1,-1);
+  let r = '<span class="jsxn-prop-brace">{</span>';
+  const parts = stl(inner,',');
+  for (let i=0;i<parts.length;i++) {
+    if (i>0) r += '<span class="jsxn-prop-brace">, </span>';
+    const p = parts[i].trim();
+    if (p.startsWith('...')) { r += `<span class="jsxn-spread">${esc(p)}</span>`; }
+    else {
+      const ci = p.indexOf(':');
+      if (ci>=0) r += `<span class="jsxn-prop-key">${esc(p.slice(0,ci))}</span>:<span class="jsxn-prop-val">${esc(p.slice(ci+1))}</span>`;
+      else r += `<span class="jsxn-prop-key">${esc(p)}</span>`;
+    }
+  }
+  return r + '<span class="jsxn-prop-brace">}</span>';
+}
 
-  return (
-    <Layout>
-      <Sidebar>
-        <NavItem icon={<HomeIcon />} label="Home" href="/" />
-        <NavItem icon={<SettingsIcon />} label="Settings" href="/settings" />
-        <NavItem icon={<ProfileIcon />} label="Profile" href="/profile" />
-      </Sidebar>
-      <Content>
-        <PageHeader title="Welcome" subtitle="Manage your account" />
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent Orders</CardTitle>
-          </CardHeader>
-          <CardBody>
-            {orders.map(order => (
-              <OrderRow key={order.id} order={order} onSelect={handleSelect} onDelete={handleDelete} />
-            ))}
-          </CardBody>
-          <CardFooter>
-            <Button variant="primary" onClick={loadMore}>Load More</Button>
-            <Button variant="ghost" onClick={handleReset}>Reset</Button>
-          </CardFooter>
-        </Card>
-      </Content>
-    </Layout>
-  )
-}`,
-    },
+function fmb(s,start) {
+  let d=0;
+  for (let i=start;i<s.length;i++) { if(s[i]==='{')d++; else if(s[i]==='}'){d--;if(d===0)return i;} }
+  return -1;
+}
+function stl(s,sep) {
+  const p=[]; let d=0,c='';
+  for (let i=0;i<s.length;i++) {
+    const ch=s[i];
+    if(ch==='('||ch==='{'||ch==='[')d++; else if(ch===')'||ch==='}'||ch===']')d--;
+    if(ch===sep&&d===0){p.push(c);c='';} else c+=ch;
+  }
+  if(c)p.push(c); return p;
+}
+function ftlp(s) {
+  let d=0;
+  for(let i=0;i<s.length;i++){const ch=s[i];if(ch==='('||ch==='{'||ch==='[')d++;else if(ch===')'||ch==='}'||ch===']')d--;if(ch==='|'&&d===0)return i;}
+  return -1;
+}
+
+// ── JSX highlighter (simple regex) ────────────────────────
+function hlJSX(line) {
+  if (!line.trim()) return '';
+  let r = esc(line);
+  // Strings
+  r = r.replace(/"[^"]*"/g, '<span class="jsx-str">$&</span>');
+  // Tags
+  r = r.replace(/(&lt;\/?)([\w.]+)/g, (_,b,t) => `${b}<span class="jsx-tag">${t}</span>`);
+  r = r.replace(/(\/?&gt;)/g, '<span class="jsx-tag">$1</span>');
+  // Keywords
+  r = r.replace(/\b(import|from|export|default|function|const|let|var|return|type|interface)\b/g, '<span class="jsx-kw">$1</span>');
+  // Attributes
+  r = r.replace(/\b([a-zA-Z][\w]*)(?==(?:&quot;|<span|{|\())/g, '<span class="jsx-attr">$1</span>');
+  return r;
+}
+
+// ── Mixed highlighter (auto-detect per line) ──────────────
+function highlight(text) {
+  const t = text.trimStart();
+  if (/^@[ITCPS]\s/.test(t) || /^@(state|ref)\s/.test(t) || /^---\s*$/.test(t) ||
+      /^\?/.test(t) || /^\*\w/.test(t)) return hlLine(text);
+  if (/^[a-z][\w]*[.#]/.test(t) && !t.startsWith('<')) return hlLine(text);
+  if (/^(div|span|ul|li|h[1-6]|input|button|form|section|nav|main|header|footer|p|a|img)\b/.test(t) && !t.startsWith('<')) return hlLine(text);
+  if (/^[A-Z]\s/.test(t) && !t.startsWith('<')) return hlLine(text);
+  return hlJSX(text);
+}
+
+// ── DOM helpers ───────────────────────────────────────────
+function createEl(line) {
+  const el = document.createElement('div');
+  el.className = 'line';
+  el.innerHTML = highlight(line.text) || '&nbsp;';
+  return el;
+}
+
+function renderAll() {
+  codeEl.innerHTML = '';
+  elMap = {};
+  for (const ln of lines) {
+    const el = createEl(ln);
+    codeEl.appendChild(el);
+    elMap[ln.id] = el;
+  }
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// ── Apply one mutation ────────────────────────────────────
+async function apply(mut) {
+  const touched = new Set();
+
+  // 1. Highlight lines that will change
+  if (mut.c) for (const [id] of mut.c) { elMap[id]?.classList.add('hl'); touched.add(id); }
+  if (mut.r) for (const id of mut.r)   { elMap[id]?.classList.add('hl'); touched.add(id); }
+  await sleep(250);
+
+  // 2. Apply content changes
+  if (mut.c) {
+    for (const [id, newText] of mut.c) {
+      const ln = lines.find(l => l.id === id);
+      if (ln) { ln.text = newText; elMap[id].innerHTML = highlight(newText) || '&nbsp;'; }
+    }
+  }
+
+  // 3. Inserts
+  if (mut.i) {
+    for (const [afterId, text] of mut.i) {
+      const nid = nextId++;
+      const newLn = { id: nid, text };
+      const ai = lines.findIndex(l => l.id === afterId);
+      lines.splice(ai + 1, 0, newLn);
+      const el = createEl(newLn);
+      el.classList.add('inserting');
+      el.classList.add('hl');
+      elMap[afterId].after(el);
+      elMap[nid] = el;
+      // Trigger reflow then expand
+      el.offsetHeight;
+      el.classList.remove('inserting');
+      touched.add(nid);
+    }
+  }
+
+  // 4. Removals (collapse)
+  if (mut.r) {
+    for (const id of mut.r) {
+      const el = elMap[id];
+      if (el) {
+        el.classList.add('collapsing');
+        el.classList.remove('hl');
+        lines = lines.filter(l => l.id !== id);
+        setTimeout(() => { el.remove(); delete elMap[id]; }, 300);
+      }
+    }
+  }
+
+  // 5. Hold highlight briefly
+  await sleep(350);
+
+  // 6. Remove highlights
+  for (const id of touched) {
+    if (elMap[id]) elMap[id].classList.remove('hl');
+  }
+}
+
+// ── Token counter animation ───────────────────────────────
+function animTokens(to) {
+  const from = curTokens;
+  if (from === to) return;
+  const start = performance.now();
+  const dur = 400;
+  tokCur.classList.add('shrinking');
+  (function tick(now) {
+    const p = Math.min((now - start) / dur, 1);
+    const eased = 1 - Math.pow(1 - p, 3);
+    const val = Math.round(from + (to - from) * eased);
+    tokCur.textContent = val;
+    const pct = Math.round((1 - val / 195) * 100);
+    savingsEl.textContent = pct > 0 ? `~${pct}% smaller` : '';
+    if (p < 1) requestAnimationFrame(tick);
+    else curTokens = to;
+  })(performance.now());
+}
+
+function resetTokens() {
+  curTokens = 195;
+  tokCur.textContent = '195';
+  tokCur.classList.remove('shrinking');
+  savingsEl.textContent = '';
+}
+
+// ── Main loop ─────────────────────────────────────────────
+async function run() {
+  while (true) {
+    // Reset
+    lines = INIT.map((t, i) => ({ id: i, text: t }));
+    nextId = 30;
+    renderAll();
+    codeEl.style.minHeight = codeEl.offsetHeight + 'px';
+    resetTokens();
+
+    // Run mutations
+    for (const mut of M) {
+      await sleep(mut.d);
+      await apply(mut);
+      if (mut.t != null) animTokens(mut.t);
+    }
+
+    // Hold final state
+    await sleep(5000);
+
+    // Fade out before reset
+    codeEl.style.opacity = '0';
+    await sleep(300);
+    codeEl.style.opacity = '1';
+  }
+}
+
+// ── Copy button ───────────────────────────────────────────
+function copyBlock(btn) {
+  const text = btn.parentElement.querySelector('.install-block').textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = 'Copied!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1500);
+  });
+}
+
+// ── Transform reference grid ──────────────────────────────
+(function buildTransformGrid() {
+  const transforms = [
+    { label: 'Imports', before: 'import { useState } from "react"', after: '@I react: useState' },
+    { label: 'Type imports', before: 'import type { Task } from "./types"', after: '@T ./types: Task' },
+    { label: 'State', before: 'const [x, setX] = useState(0)', after: '@state x = 0' },
+    { label: 'Refs', before: 'const ref = useRef(null)', after: '@ref ref = null' },
+    { label: 'JSX boundary', before: 'return (', after: '---' },
+    { label: 'Selectors', before: '<div className="card">', after: 'div.card' },
+    { label: 'Closing tags', before: '</div></ul></li>', after: null },
+    { label: 'Conditionals', before: '{ok && <Badge/>}', after: '?ok > Badge' },
+    { label: 'Iteration', before: '{items.map(i => <X/>)}', after: '*items > X' },
+    { label: 'Aliases', before: '<Button/> used 5\u00d7', after: '@C Button=B' },
   ];
-
-  let currentFullFile = false;
-
-  const outputEl = document.getElementById('output');
-  const errorEl = document.getElementById('error');
-  const warningEl = document.getElementById('warning');
-  const inputCharsEl = document.getElementById('input-chars');
-  const outputCharsEl = document.getElementById('output-chars');
-  const encodeBtn = document.getElementById('encode-btn');
-  const statInputTok = document.getElementById('stat-input-tok');
-  const statOutputTok = document.getElementById('stat-output-tok');
-  const statSavedTok = document.getElementById('stat-saved-tok');
-  const statPct = document.getElementById('stat-pct');
-  const compressionFill = document.getElementById('compression-fill');
-
-  // Create CodeMirror editor
-  const editor = new EditorView({
-    state: EditorState.create({
-      doc: EXAMPLES[0].code,
-      extensions: [
-        keymap.of([
-          ...defaultKeymap,
-          { key: 'Mod-Enter', run: () => { run(); return true; } },
-        ]),
-        javascript({ jsx: true, typescript: true }),
-        oneDark,
-        bracketMatching(),
-        closeBrackets(),
-        EditorView.lineWrapping,
-      ],
-    }),
-    parent: document.getElementById('editor-wrap'),
-  });
-
-  function run() {
-    const code = editor.state.doc.toString();
-    errorEl.classList.remove('visible');
-    errorEl.textContent = '';
-    warningEl.classList.remove('visible');
-    warningEl.textContent = '';
-
-    if (!code.trim()) {
-      outputEl.innerHTML = '';
-      outputEl.classList.add('empty');
-      outputEl.textContent = 'Click "Encode" or press Cmd+Enter';
-      inputCharsEl.innerHTML = '';
-      outputCharsEl.innerHTML = '';
-      resetStats();
-      return;
-    }
-
-    try {
-      const { output: result, errors } = currentFullFile ? encodeFile(code) : encode(code);
-
-      if (errors.length > 0) {
-        const msgs = errors.map(e => `Line ${e.loc?.line ?? '?'}: ${e.message}`);
-        warningEl.textContent = `Parse warning${errors.length > 1 ? 's' : ''}: ${msgs.join(' | ')}`;
-        warningEl.classList.add('visible');
-      }
-
-      outputEl.innerHTML = highlightJSXN(result);
-      outputEl.classList.remove('empty');
-
-      const inLen = code.length;
-      const outLen = result.length;
-      const saved = inLen - outLen;
-      const pct = inLen > 0 ? ((saved / inLen) * 100) : 0;
-
-      const inTok = estimateTokens(code);
-      const outTok = estimateTokens(result);
-      const savedTok = inTok - outTok;
-
-      inputCharsEl.innerHTML = `<span class="tok-value">~${inTok.toLocaleString()}</span> <span class="tok-label">tokens</span>`;
-      outputCharsEl.innerHTML = `<span class="tok-value">~${outTok.toLocaleString()}</span> <span class="tok-label">tokens</span>`;
-
-      statInputTok.textContent = '~' + inTok.toLocaleString();
-      statOutputTok.textContent = '~' + outTok.toLocaleString();
-      statSavedTok.textContent = '~' + savedTok.toLocaleString();
-      statPct.textContent = pct.toFixed(1) + '%';
-      compressionFill.style.width = Math.max(0, Math.min(100, pct)) + '%';
-    } catch (e) {
-      errorEl.textContent = e.message;
-      errorEl.classList.add('visible');
-    }
+  const grid = document.getElementById('transform-grid');
+  for (const t of transforms) {
+    const card = document.createElement('div');
+    card.className = 'transform-card';
+    const afterHTML = t.after === null
+      ? '<span class="dim">(indentation)</span>'
+      : highlight(t.after);
+    card.innerHTML =
+      '<div class="label">' + esc(t.label) + '</div>' +
+      '<div class="before">' + hlJSX(t.before) + '</div>' +
+      '<div class="after">' + afterHTML + '</div>';
+    grid.appendChild(card);
   }
+})();
 
-  function resetStats() {
-    statInputTok.textContent = '—';
-    statOutputTok.textContent = '—';
-    statSavedTok.textContent = '—';
-    statPct.textContent = '—';
-    compressionFill.style.width = '0%';
-  }
-
-  function loadExample(idx) {
-    const ex = EXAMPLES[idx];
-    currentFullFile = !!ex.fullFile;
-    editor.dispatch({
-      changes: { from: 0, to: editor.state.doc.length, insert: ex.code },
-    });
-    // Update active button
-    document.querySelectorAll('.example-btn').forEach((btn, i) => {
-      btn.classList.toggle('active', i === idx);
-    });
-    run();
-  }
-
-  // Build example buttons
-  const examplesBar = document.querySelector('.examples');
-  EXAMPLES.forEach((ex, i) => {
-    const btn = document.createElement('button');
-    btn.className = 'example-btn';
-    btn.textContent = ex.name;
-    btn.addEventListener('click', () => loadExample(i));
-    examplesBar.appendChild(btn);
-  });
-
-  encodeBtn.addEventListener('click', run);
-
-  // Load first example on startup
-  loadExample(0);
+run();
 </script>
 </body>
 </html>
