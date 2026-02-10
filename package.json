@@ -6,13 +6,18 @@
   "type": "module",
   "exports": "./src/index.js",
   "main": "./src/index.js",
+  "bin": {
+    "jsx-notation-mcp": "./mcp/index.js"
+  },
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest"
   },
   "dependencies": {
     "@babel/parser": "^7.26.0",
-    "@babel/traverse": "^7.26.0"
+    "@babel/traverse": "^7.26.0",
+    "@modelcontextprotocol/sdk": "^1.26.0",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "vitest": "^1.6.0"
