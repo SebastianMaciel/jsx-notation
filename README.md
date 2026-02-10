@@ -5,6 +5,8 @@
 
 **Compress React/Next.js files by ~40% for AI assistants.** An MCP server and library that converts JSX/TSX into JSXN — a compact notation optimized for LLM token consumption.
 
+**[Try the live demo →](https://sebastianmaciel.github.io/jsx-notation/)**
+
 ## Why
 
 Every time an AI assistant reads your React components, it wastes tokens on closing tags, repeated `className` attributes, and verbose props. That's context window space that could be used for actual reasoning.
