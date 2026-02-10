@@ -14,7 +14,7 @@ const fixture = (name) => readFileSync(join(__dirname, 'fixtures', name), 'utf-8
 describe('basic encoding', () => {
   it('encodes elements with className as dot notation', () => {
     const result = encode('<div className="foo">x</div>');
-    expect(result).toContain('div.foo');
+    expect(result).toContain('.foo');
   });
 
   it('encodes multiple classes as chained dots', () => {
@@ -24,12 +24,12 @@ describe('basic encoding', () => {
 
   it('encodes id as hash notation', () => {
     const result = encode('<div id="main">x</div>');
-    expect(result).toContain('div#main');
+    expect(result).toContain('#main');
   });
 
   it('encodes id + className together', () => {
     const result = encode('<div id="x" className="y">z</div>');
-    expect(result).toContain('div#x.y');
+    expect(result).toContain('#x.y');
   });
 
   it('encodes text children inline', () => {
@@ -67,14 +67,14 @@ describe('basic encoding', () => {
       </div>
     `);
     const lines = result.split('\n');
-    expect(lines[0]).toBe('div.outer');
-    expect(lines[1]).toBe(' div.inner');
+    expect(lines[0]).toBe('.outer');
+    expect(lines[1]).toBe(' .inner');
     expect(lines[2]).toBe('  span "Hello"');
   });
 
   it('encodes the basic fixture', () => {
     const result = encode(fixture('basic.jsx'));
-    expect(result).toContain('div.container');
+    expect(result).toContain('.container');
     expect(result).toContain('h1#title "Hello World"');
     expect(result).toContain('p.intro.description "Welcome to JSXN"');
     expect(result).toContain('span (message)');
@@ -202,7 +202,7 @@ describe('edge cases', () => {
 
   it('encodes computed className', () => {
     const result = encode('<div className={cn("a", "b")}>x</div>');
-    expect(result).toMatch(/div\.\{cn\("a", "b"\)\}/);
+    expect(result).toMatch(/\.\{cn\("a", "b"\)\}/);
   });
 
   it('encodes boolean props', () => {
@@ -289,7 +289,7 @@ describe('SPEC.md example', () => {
 
     // Body should contain the key patterns
     expect(result).toContain('M {');
-    expect(result).toContain('div.modal-body');
+    expect(result).toContain('.modal-body');
     expect(result).toContain('h2 (title)');
     expect(result).toMatch(/\?error > /);
     expect(result).toContain('ul.item-list');

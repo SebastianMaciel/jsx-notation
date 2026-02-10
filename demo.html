@@ -616,7 +616,8 @@
       other.push({ propName: pn, attr });
     }
 
-    let line = tag;
+    const hasSel = idv !== null || cls !== null;
+    let line = (tag === 'div' && hasSel) ? '' : tag;
     if (idv) line += idv.type === 'string' ? `#${idv.value}` : `#{${idv.value}}`;
     if (cls) {
       if (cls.type === 'string') { for (const c of cls.value.split(/\s+/).filter(Boolean)) line += `.${ctx.sa.get(c) ?? c}`; }

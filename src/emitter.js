@@ -141,8 +141,9 @@ function emitNode(node, level, lines, ctx) {
     otherProps.push({ propName, attr });
   }
 
-  // Build the tag line
-  let line = tagName;
+  // Build the tag line — implicit div: omit "div" when it has selectors
+  const hasSelector = idValue !== null || classNames !== null;
+  let line = (tagName === 'div' && hasSelector) ? '' : tagName;
 
   // Append #id
   if (idValue !== null) {
