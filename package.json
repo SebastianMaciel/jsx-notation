@@ -1,0 +1,20 @@
+{
+  "name": "jsxn-parser",
+  "version": "0.1.0",
+  "description": "JSX to JSXN encoder — compact notation optimized for LLMs",
+  "type": "module",
+  "exports": "./src/index.js",
+  "main": "./src/index.js",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@babel/parser": "^7.26.0",
+    "@babel/traverse": "^7.26.0"
+  },
+  "devDependencies": {
+    "vitest": "^1.6.0"
+  },
+  "license": "MIT"
+}
