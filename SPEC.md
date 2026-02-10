@@ -2,9 +2,6 @@
 
 Parser/encoder que compacta JSX en una notación minimalista optimizada para enviar a LLMs, reduciendo tokens ~40%.
 
-## Origen
-
-
 ## Problema
 
 JSX es extremadamente verboso para LLMs:
