@@ -101,6 +101,8 @@ The main use case — let your AI assistant read JSX/HTML/SVG files in compresse
 claude mcp add jsx-notation -- npx jsx-notation-mcp
 ```
 
+> That's it. Restart Claude Code and the tools will be available. No `npm install` needed — `npx` downloads everything automatically.
+
 **Cursor** (`~/.cursor/mcp.json` or `.cursor/mcp.json`):
 
 ```json
@@ -114,6 +116,8 @@ claude mcp add jsx-notation -- npx jsx-notation-mcp
 }
 ```
 
+> Just add this to your config file and restart Cursor. It will pick up the server automatically — nothing else to install.
+
 **VS Code Copilot** (`.vscode/mcp.json`):
 
 ```json
@@ -126,6 +130,8 @@ claude mcp add jsx-notation -- npx jsx-notation-mcp
   }
 }
 ```
+
+> Add this file to your project and restart VS Code. Copilot will detect the server on its own — no extra setup needed.
 
 The server exposes four tools:
 
