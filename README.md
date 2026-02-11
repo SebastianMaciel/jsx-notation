@@ -95,6 +95,8 @@ Indentation replaces closing tags. `.class` and `#id` work like CSS selectors. F
 
 The main use case — let your AI assistant read JSX/HTML/SVG files in compressed form.
 
+[![Install in VS Code](https://img.shields.io/badge/Install_in-VS_Code-007ACC?logo=visualstudiocode&logoColor=white)](https://vscode.dev/redirect/mcp/install?name=jsx-notation&config=%7B%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22jsx-notation-mcp%22%5D%7D) [![Install in Cursor](https://img.shields.io/badge/Install_in-Cursor-blue?logo=cursor&logoColor=white)](https://cursor.com/en/install-mcp?name=jsx-notation&config=eyJjb21tYW5kIjoibnB4IiwiYXJncyI6WyJqc3gtbm90YXRpb24tbWNwIl19)
+
 **Claude Code:**
 
 ```bash
@@ -102,6 +104,21 @@ claude mcp add jsx-notation -- npx jsx-notation-mcp
 ```
 
 > That's it. Restart Claude Code and the tools will be available. No `npm install` needed — `npx` downloads everything automatically.
+
+**VS Code** (`.vscode/mcp.json`):
+
+```json
+{
+  "servers": {
+    "jsx-notation": {
+      "command": "npx",
+      "args": ["jsx-notation-mcp"]
+    }
+  }
+}
+```
+
+> Add this file to your project and restart VS Code. It will detect the server on its own — no extra setup needed.
 
 **Cursor** (`~/.cursor/mcp.json` or `.cursor/mcp.json`):
 
@@ -118,11 +135,11 @@ claude mcp add jsx-notation -- npx jsx-notation-mcp
 
 > Just add this to your config file and restart Cursor. It will pick up the server automatically — nothing else to install.
 
-**VS Code Copilot** (`.vscode/mcp.json`):
+**Windsurf** (`~/.codeium/windsurf/mcp_config.json`):
 
 ```json
 {
-  "servers": {
+  "mcpServers": {
     "jsx-notation": {
       "command": "npx",
       "args": ["jsx-notation-mcp"]
@@ -131,7 +148,24 @@ claude mcp add jsx-notation -- npx jsx-notation-mcp
 }
 ```
 
-> Add this file to your project and restart VS Code. Copilot will detect the server on its own — no extra setup needed.
+> Same format as Cursor. Add it, restart Windsurf, and it's ready.
+
+> **Cline**, **Continue**, **Amazon Q**, and **JetBrains** IDEs (IntelliJ, WebStorm, etc.) also use the same `mcpServers` format. Paste the JSON above into your MCP settings.
+
+**Zed** (`~/.config/zed/settings.json`):
+
+```json
+{
+  "context_servers": {
+    "jsx-notation": {
+      "command": "npx",
+      "args": ["jsx-notation-mcp"]
+    }
+  }
+}
+```
+
+> Add this inside your Zed settings file and restart. Zed uses `context_servers` instead of `mcpServers`.
 
 The server exposes four tools:
 

@@ -3,7 +3,18 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>JSXN</title>
+<meta name="description" content="Live encoder and decoder for JSXN notation. Convert JSX, HTML, and SVG to compact JSXN and back.">
+<meta name="theme-color" content="#0a0a0a">
+<meta property="og:type" content="website">
+<meta property="og:title" content="JSXN — Editor">
+<meta property="og:description" content="Live encoder and decoder for JSXN notation. Convert JSX, HTML, and SVG to compact JSXN and back.">
+<meta property="og:url" content="https://sebastianmaciel.github.io/jsx-notation/editor.html">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="JSXN — Editor">
+<meta name="twitter:description" content="Live encoder and decoder for JSXN notation. Convert JSX, HTML, and SVG to compact JSXN and back.">
+<link rel="canonical" href="https://sebastianmaciel.github.io/jsx-notation/editor.html">
+<title>JSXN — Editor</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M10,4 L2,16 L10,28' stroke='%23888' stroke-width='3' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3Cpath d='M22,4 L30,16 L22,28' stroke='%23888' stroke-width='3' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3Cpath d='M12,16 L20,16' stroke='%234ade80' stroke-width='2.5' stroke-linecap='round'/%3E%3Cpath d='M12,16 L14.5,13.5 M12,16 L14.5,18.5' stroke='%234ade80' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3Cpath d='M20,16 L17.5,13.5 M20,16 L17.5,18.5' stroke='%234ade80' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -484,58 +495,60 @@
 </head>
 <body>
 
-<header>
+<header id="toolbar">
   <div style="display:flex;align-items:center">
     <h1>JSXN</h1>
-    <div class="mode-toggle">
-      <button class="mode-btn active" id="mode-encode" onclick="setMode('encode')">Encode</button>
-      <button class="mode-btn" id="mode-decode" onclick="setMode('decode')">Decode</button>
+    <div class="mode-toggle" role="group" aria-label="Mode">
+      <button class="mode-btn active" id="mode-encode" onclick="setMode('encode')" aria-pressed="true">Encode</button>
+      <button class="mode-btn" id="mode-decode" onclick="setMode('decode')" aria-pressed="false">Decode</button>
     </div>
-    <div class="mode-toggle" id="format-toggle">
-      <button class="mode-btn active" id="fmt-jsx" onclick="setFormat('jsx')">JSX</button>
-      <button class="mode-btn" id="fmt-html" onclick="setFormat('html')">HTML</button>
+    <div class="mode-toggle" id="format-toggle" role="group" aria-label="Format">
+      <button class="mode-btn active" id="fmt-jsx" onclick="setFormat('jsx')" aria-pressed="true">JSX</button>
+      <button class="mode-btn" id="fmt-html" onclick="setFormat('html')" aria-pressed="false">HTML</button>
     </div>
   </div>
-  <a href="index.html">&larr; Back</a>
+  <nav aria-label="Navigation">
+    <a href="index.html">&larr; Back</a>
+  </nav>
 </header>
 
-<div class="main">
-  <div class="examples">
+<main id="main" class="main">
+  <div class="examples" id="examples" role="toolbar" aria-label="Example snippets">
     <span class="examples-label">Examples</span>
   </div>
-  <div class="panels">
-    <div class="panel">
+  <div class="panels" id="panels">
+    <div class="panel" id="panel-input">
       <div class="panel-header">
-        <span class="panel-label" id="input-label">JSX input</span>
+        <label class="panel-label" id="input-label" for="editor-wrap">JSX input</label>
         <span class="panel-stat" id="input-chars"></span>
       </div>
-      <div id="editor-wrap"></div>
+      <div id="editor-wrap" role="textbox" aria-multiline="true" aria-labelledby="input-label"></div>
     </div>
-    <div class="panel">
+    <div class="panel" id="panel-output">
       <div class="panel-header">
         <span class="panel-label" id="output-label">JSXN output</span>
         <span class="panel-stat" id="output-chars"></span>
       </div>
-      <div class="output empty" id="output">Click "Encode" or press Cmd+Enter</div>
+      <div class="output empty" id="output" role="region" aria-labelledby="output-label" aria-live="polite">Click "Encode" or press Cmd+Enter</div>
     </div>
   </div>
 
-  <div class="banner warning" id="warning"></div>
-  <div class="banner error" id="error"></div>
+  <div class="banner warning" id="warning" role="alert"></div>
+  <div class="banner error" id="error" role="alert"></div>
 
-  <div class="footer">
+  <div class="footer" id="action-bar">
     <div class="footer-encode">
-      <span class="encode-tooltip">Edit the input and press Cmd+Enter to run</span>
-      <button id="encode-btn">Encode</button>
+      <span class="encode-tooltip" id="encode-hint">Edit the input and press Cmd+Enter to run</span>
+      <button id="encode-btn" aria-describedby="encode-hint">Encode</button>
     </div>
-    <div class="footer-stats" id="stats">
+    <div class="footer-stats" id="stats" aria-live="polite">
       <div class="stat-flow">
         <div class="stat-pill">
           <span class="stat-pill-label">Input</span>
           <span class="stat-pill-value" id="stat-input-tok">—</span>
           <span class="stat-pill-unit">tokens</span>
         </div>
-        <span class="stat-arrow">→</span>
+        <span class="stat-arrow" aria-hidden="true">→</span>
         <div class="stat-pill">
           <span class="stat-pill-label">Output</span>
           <span class="stat-pill-value" id="stat-output-tok">—</span>
@@ -547,13 +560,13 @@
           <span class="stat-savings-pct" id="stat-pct">—</span>
           <span class="stat-savings-detail"><span id="stat-saved-tok">—</span> <span class="token-label">tokens</span> <span id="stat-saved-label">saved</span></span>
         </div>
-        <div class="compression-bar-track">
+        <div class="compression-bar-track" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" aria-label="Compression ratio">
           <div class="compression-bar-fill" id="compression-fill"></div>
         </div>
       </div>
     </div>
   </div>
-</div>
+</main>
 
 <script type="module">
   // --- CodeMirror ---
@@ -2645,6 +2658,7 @@ html {lang:en}
         statSavedTok.textContent = '~' + savedTok.toLocaleString();
         statPct.textContent = pct.toFixed(1) + '%';
         compressionFill.style.width = Math.max(0, Math.min(100, pct)) + '%';
+        compressionFill.parentElement.setAttribute('aria-valuenow', Math.round(pct));
       } else {
         // In decode mode, show expansion ratio
         const expanded = outLen - inLen;
@@ -2655,6 +2669,7 @@ html {lang:en}
         statSavedTok.textContent = '~' + expandedTok.toLocaleString();
         statPct.textContent = pct.toFixed(1) + '%';
         compressionFill.style.width = Math.max(0, Math.min(100, pct)) + '%';
+        compressionFill.parentElement.setAttribute('aria-valuenow', Math.round(pct));
       }
     } catch (e) {
       errorEl.textContent = e.message;
@@ -2668,6 +2683,7 @@ html {lang:en}
     statSavedTok.textContent = '—';
     statPct.textContent = '—';
     compressionFill.style.width = '0%';
+    compressionFill.parentElement.setAttribute('aria-valuenow', 0);
   }
 
   function loadExample(idx) {
@@ -2723,6 +2739,8 @@ html {lang:en}
 
     document.getElementById('mode-encode').classList.toggle('active', mode === 'encode');
     document.getElementById('mode-decode').classList.toggle('active', mode === 'decode');
+    document.getElementById('mode-encode').setAttribute('aria-pressed', mode === 'encode');
+    document.getElementById('mode-decode').setAttribute('aria-pressed', mode === 'decode');
 
     updateLabels();
     buildExampleButtons();
@@ -2735,6 +2753,8 @@ html {lang:en}
 
     document.getElementById('fmt-jsx').classList.toggle('active', fmt === 'jsx');
     document.getElementById('fmt-html').classList.toggle('active', fmt === 'html');
+    document.getElementById('fmt-jsx').setAttribute('aria-pressed', fmt === 'jsx');
+    document.getElementById('fmt-html').setAttribute('aria-pressed', fmt === 'html');
 
     updateLabels();
     buildExampleButtons();
