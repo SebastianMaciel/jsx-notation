@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>JSXN Encoder</title>
+<title>JSXN</title>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -33,6 +33,29 @@
   header { display: flex; align-items: center; justify-content: space-between; }
   header a { color: #555; font-size: 13px; text-decoration: none; transition: color 0.2s; }
   header a:hover { color: #fff; }
+
+  .mode-toggle {
+    display: flex;
+    background: #141414;
+    border: 1px solid #2a2a2a;
+    border-radius: 8px;
+    overflow: hidden;
+    margin-left: 16px;
+  }
+
+  .mode-btn {
+    padding: 6px 18px;
+    background: transparent;
+    color: #666;
+    border: none;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .mode-btn:hover { color: #aaa; }
+  .mode-btn.active { background: #fff; color: #000; }
 
   .main {
     flex: 1;
@@ -462,7 +485,17 @@
 <body>
 
 <header>
-  <h1>JSXN <span>encoder</span></h1>
+  <div style="display:flex;align-items:center">
+    <h1>JSXN</h1>
+    <div class="mode-toggle">
+      <button class="mode-btn active" id="mode-encode" onclick="setMode('encode')">Encode</button>
+      <button class="mode-btn" id="mode-decode" onclick="setMode('decode')">Decode</button>
+    </div>
+    <div class="mode-toggle" id="format-toggle">
+      <button class="mode-btn active" id="fmt-jsx" onclick="setFormat('jsx')">JSX</button>
+      <button class="mode-btn" id="fmt-html" onclick="setFormat('html')">HTML</button>
+    </div>
+  </div>
   <a href="index.html">&larr; Back</a>
 </header>
 
@@ -473,17 +506,17 @@
   <div class="panels">
     <div class="panel">
       <div class="panel-header">
-        <span class="panel-label">JSX input</span>
+        <span class="panel-label" id="input-label">JSX input</span>
         <span class="panel-stat" id="input-chars"></span>
       </div>
       <div id="editor-wrap"></div>
     </div>
     <div class="panel">
       <div class="panel-header">
-        <span class="panel-label">JSXN output</span>
+        <span class="panel-label" id="output-label">JSXN output</span>
         <span class="panel-stat" id="output-chars"></span>
       </div>
-      <div class="output empty" id="output">Click "Encode" or press Ctrl+Enter</div>
+      <div class="output empty" id="output">Click "Encode" or press Cmd+Enter</div>
     </div>
   </div>
 
@@ -492,7 +525,7 @@
 
   <div class="footer">
     <div class="footer-encode">
-      <span class="encode-tooltip">Edit the JSX input freely and re-encode to test compression</span>
+      <span class="encode-tooltip">Edit the input and press Cmd+Enter to run</span>
       <button id="encode-btn">Encode</button>
     </div>
     <div class="footer-stats" id="stats">
@@ -512,7 +545,7 @@
       <div class="stat-savings">
         <div class="stat-savings-top">
           <span class="stat-savings-pct" id="stat-pct">—</span>
-          <span class="stat-savings-detail"><span id="stat-saved-tok">—</span> <span class="token-label">tokens</span> saved</span>
+          <span class="stat-savings-detail"><span id="stat-saved-tok">—</span> <span class="token-label">tokens</span> <span id="stat-saved-label">saved</span></span>
         </div>
         <div class="compression-bar-track">
           <div class="compression-bar-fill" id="compression-fill"></div>
@@ -1058,6 +1091,522 @@
     return headers ? `${headers}\n\n${body}` : body;
   }
 
+  // --- Inline decoder (same as src/decoder.js + file-decoder.js, self-contained) ---
+
+  function decodeFn(jsxn) {
+    if (!jsxn || !jsxn.trim()) return '';
+    const lines = jsxn.split('\n');
+    const rC = new Map(), rP = new Map(), rS = new Map();
+    const bodyLines = [];
+    for (const line of lines) {
+      if (line.startsWith('@C ')) parseAH(line.slice(3), rC);
+      else if (line.startsWith('@P ')) parseAH(line.slice(3), rP);
+      else if (line.startsWith('@S ')) parseAH(line.slice(3), rS);
+      else bodyLines.push(line);
+    }
+    while (bodyLines.length && !bodyLines[0].trim()) bodyLines.shift();
+    while (bodyLines.length && !bodyLines[bodyLines.length - 1].trim()) bodyLines.pop();
+    if (!bodyLines.length) return '';
+    const ctx = { rC, rP, rS };
+    const roots = buildDecTree(bodyLines, ctx);
+    const out = [];
+    for (const n of roots) emitJSXDec(n, 0, out);
+    return out.join('\n');
+  }
+
+  function parseAH(str, map) {
+    for (const e of str.split(',')) {
+      const t = e.trim(); if (!t) continue;
+      const eq = t.indexOf('='); if (eq === -1) continue;
+      map.set(t.slice(eq + 1).trim(), t.slice(0, eq).trim());
+    }
+  }
+
+  function buildDecTree(lines, ctx) {
+    const roots = [], stack = [];
+    let i = 0;
+    while (i < lines.length) {
+      const raw = lines[i], trimmed = raw.trimStart();
+      const lineIndent = raw.length - trimmed.length;
+      if (!trimmed) { i++; continue; }
+      const node = classifyDec(trimmed, ctx);
+      node.children = node.children || [];
+      while (stack.length && stack[stack.length - 1].indent >= lineIndent) stack.pop();
+      if (!stack.length) roots.push(node);
+      else stack[stack.length - 1].node.children.push(node);
+      stack.push({ node, indent: lineIndent });
+      if (node.type === 'conditional' || node.type === 'map') {
+        const ic = node.child;
+        if (ic && ic.type === 'element') stack.push({ node: ic, indent: lineIndent + 1 });
+      }
+      i++;
+    }
+    return roots;
+  }
+
+  function classifyDec(t, ctx) {
+    if (t === '_') return { type: 'fragment' };
+    if (t.startsWith('?') && t.includes('>') && t.includes('|')) return parseTernDec(t, ctx);
+    if (t.startsWith('?') && t.includes('>')) return parseCondDec(t, ctx);
+    if (t.startsWith('*') && t.includes('>')) return parseMapDec(t, ctx);
+    if (t.startsWith('"') && t.endsWith('"')) return { type: 'text', value: t.slice(1, -1) };
+    if (t.startsWith('(') && t.endsWith(')')) return { type: 'expression', value: t.slice(1, -1) };
+    return parseElDec(t, ctx);
+  }
+
+  function parseTernDec(t, ctx) {
+    const a = t.slice(1), gi = a.indexOf('>'), cond = a.slice(0, gi).trim(), rest = a.slice(gi + 1).trim();
+    let d = 0, pi = -1;
+    for (let i = 0; i < rest.length; i++) {
+      if ('{(['.includes(rest[i])) d++; else if ('})]'.includes(rest[i])) d--;
+      if (rest[i] === '|' && d === 0) { pi = i; break; }
+    }
+    const cons = classifyDec(rest.slice(0, pi).trim(), ctx); cons.children = cons.children || [];
+    const alt = classifyDec(rest.slice(pi + 1).trim(), ctx); alt.children = alt.children || [];
+    return { type: 'ternary', condition: cond, consequent: cons, alternate: alt };
+  }
+
+  function parseCondDec(t, ctx) {
+    const a = t.slice(1), gi = a.indexOf('>');
+    const child = classifyDec(a.slice(gi + 1).trim(), ctx); child.children = child.children || [];
+    return { type: 'conditional', condition: a.slice(0, gi).trim(), child };
+  }
+
+  function parseMapDec(t, ctx) {
+    const a = t.slice(1), gi = a.indexOf('>');
+    const coll = a.slice(0, gi).trim();
+    const child = classifyDec(a.slice(gi + 1).trim(), ctx); child.children = child.children || [];
+    const nm = coll.includes('.') ? coll.split('.').pop() : coll;
+    let param;
+    if (nm.endsWith('ies')) param = nm.slice(0, -3) + 'y';
+    else if (nm.endsWith('ses') || nm.endsWith('xes') || nm.endsWith('zes')) param = nm.slice(0, -2);
+    else if (nm.endsWith('ren') && nm.length > 4) param = nm.slice(0, -3);
+    else if (nm.endsWith('s') && !nm.endsWith('ss')) param = nm.slice(0, -1);
+    else param = 'item';
+    return { type: 'map', collection: coll, param, child };
+  }
+
+  const STR_PROPS = new Set(['type','placeholder','href','src','alt','name','role','target','rel','method','action','htmlFor','autoComplete','d','viewBox','transform','points','fill','stroke','xmlns','preserveAspectRatio','stroke-width','stroke-linecap','stroke-linejoin','stroke-dasharray','font-family','font-size','font-weight','text-anchor','opacity','rx','ry','cx','cy','r','x','y','x1','y1','x2','y2','width','height','dx','dy','offset','stop-color','stop-opacity']);
+
+  function parseElDec(t, ctx) {
+    let pos = 0, tag = '', id = null, classes = [], props = [], inlineChild = null;
+    if (t[0] === '.' || t[0] === '#') { tag = 'div'; }
+    else {
+      while (pos < t.length && t[pos] !== '#' && t[pos] !== ' ' && t[pos] !== '{') {
+        if (t[pos] === '.') { if (pos + 1 < t.length && /[A-Z]/.test(t[pos + 1])) { pos++; continue; } break; }
+        pos++;
+      }
+      tag = t.slice(0, pos);
+    }
+    tag = ctx.rC.get(tag) || tag;
+    const isME = tag.includes('.');
+    if (!isME) {
+      while (pos < t.length && (t[pos] === '.' || t[pos] === '#')) {
+        if (t[pos] === '#') {
+          pos++;
+          if (t[pos] === '{') { pos++; const e = fbb(t, pos - 1); id = { type: 'expression', value: t.slice(pos, e) }; pos = e + 1; }
+          else { const s = pos; while (pos < t.length && !'.# {'.includes(t[pos])) pos++; id = { type: 'string', value: t.slice(s, pos) }; }
+        } else {
+          pos++;
+          if (t[pos] === '{') { pos++; const e = fbb(t, pos - 1); classes.push({ type: 'expression', value: t.slice(pos, e) }); pos = e + 1; }
+          else { const s = pos; while (pos < t.length && !'.# {'.includes(t[pos])) pos++; classes.push({ type: 'string', value: ctx.rS.get(t.slice(s, pos)) || t.slice(s, pos) }); }
+        }
+      }
+    }
+    while (pos < t.length && t[pos] === ' ') pos++;
+    if (pos < t.length && t[pos] === '{') {
+      const e = fbb(t, pos), block = t.slice(pos + 1, e);
+      if (looksLikeP(block)) { parsePB(block, props, ctx); pos = e + 1; while (pos < t.length && t[pos] === ' ') pos++; }
+    }
+    if (pos < t.length) {
+      const rest = t.slice(pos);
+      if (rest.startsWith('"') && rest.endsWith('"')) inlineChild = { type: 'text', value: rest.slice(1, -1) };
+      else if (rest.startsWith('(') && rest.endsWith(')')) inlineChild = { type: 'expression', value: rest.slice(1, -1) };
+    }
+    return { type: 'element', tag, id, classes, props, inlineChild, children: [] };
+  }
+
+  function looksLikeP(b) { if (b.startsWith('...')) return true; return /^[a-zA-Z_$]/.test(b.trim()); }
+
+  function parsePB(block, props, ctx) {
+    const parts = splitP(block);
+    for (const part of parts) {
+      const t = part.trim(); if (!t) continue;
+      if (t.startsWith('...')) { props.push({ type: 'spread', value: t.slice(3) }); continue; }
+      const ci = t.indexOf(':');
+      if (ci === -1) { props.push({ type: 'boolean', name: ctx.rP.get(t) || t }); continue; }
+      const key = t.slice(0, ci); let val = t.slice(ci + 1);
+      if (val.startsWith('"') && val.endsWith('"')) val = val.slice(1, -1);
+      const name = ctx.rP.get(key) || key;
+      if (STR_PROPS.has(name) && isSSV(val)) props.push({ type: 'string', name, value: val });
+      else props.push({ type: 'expression', name, value: val });
+    }
+  }
+
+  function splitP(b) {
+    const p = []; let d = 0, s = 0, q = false;
+    for (let i = 0; i < b.length; i++) {
+      if (b[i] === '"' && d === 0) { q = !q; }
+      else if (!q) { if ('{(['.includes(b[i])) d++; else if ('})]'.includes(b[i])) d--; else if (b[i] === ',' && d === 0) { p.push(b.slice(s, i)); s = i + 1; } }
+    }
+    p.push(b.slice(s)); return p;
+  }
+
+  function isSSV(v) {
+    if (/[{}()=>!&|?+\[\]]/.test(v)) return false;
+    if (v.includes(' ')) return true;
+    if (v.startsWith('#')) return true;
+    if (/[.\-\/]/.test(v)) return true;
+    if (/^[0-9]/.test(v)) return true;
+    if (/^(currentColor|evenOdd|nonZero|sRGB|linearRGB)$/.test(v)) return true;
+    if (/^[a-zA-Z0-9_]+$/.test(v) && !/[a-z][A-Z]/.test(v)) return true;
+    return false;
+  }
+
+  function fbb(s, o) { let d = 0; for (let i = o; i < s.length; i++) { if (s[i] === '{') d++; else if (s[i] === '}') { d--; if (d === 0) return i; } } return s.length - 1; }
+
+  function emitJSXDec(node, level, out) {
+    const ind = '  '.repeat(level);
+    switch (node.type) {
+      case 'fragment': out.push(`${ind}<>`); for (const c of node.children) emitJSXDec(c, level + 1, out); out.push(`${ind}</>`); break;
+      case 'text': out.push(`${ind}${node.value}`); break;
+      case 'expression': out.push(`${ind}{${node.value}}`); break;
+      case 'conditional': emitCondDec(node, level, out); break;
+      case 'ternary': emitTernDec(node, level, out); break;
+      case 'map': emitMapDec(node, level, out); break;
+      case 'element': emitElDec(node, level, out); break;
+    }
+  }
+
+  function emitElDec(node, level, out) {
+    const ind = '  '.repeat(level);
+    const { tag, id, classes, props, inlineChild, children } = node;
+    let op = [tag];
+    if (id) op.push(id.type === 'string' ? ` id="${id.value}"` : ` id={${id.value}}`);
+    if (classes.length) {
+      const hasE = classes.some(c => c.type === 'expression');
+      if (hasE && classes.length === 1) op.push(` className={${classes[0].value}}`);
+      else if (hasE) op.push(` className={${classes.map(c => c.type === 'string' ? `"${c.value}"` : c.value).join(' + " " + ')}}`);
+      else op.push(` className="${classes.map(c => c.value).join(' ')}"`);
+    }
+    for (const p of props) {
+      if (p.type === 'spread') op.push(` {...${p.value}}`);
+      else if (p.type === 'boolean') op.push(` ${p.name}`);
+      else if (p.type === 'string') op.push(` ${p.name}="${p.value}"`);
+      else op.push(` ${p.name}={${p.value}}`);
+    }
+    const otag = op.join('');
+    if (!children.length && !inlineChild) { out.push(`${ind}<${otag} />`); return; }
+    if (!children.length && inlineChild) {
+      out.push(inlineChild.type === 'text' ? `${ind}<${otag}>${inlineChild.value}</${tag}>` : `${ind}<${otag}>{${inlineChild.value}}</${tag}>`);
+      return;
+    }
+    out.push(`${ind}<${otag}>`);
+    if (inlineChild) out.push(inlineChild.type === 'text' ? `${'  '.repeat(level + 1)}${inlineChild.value}` : `${'  '.repeat(level + 1)}{${inlineChild.value}}`);
+    for (const c of children) emitJSXDec(c, level + 1, out);
+    out.push(`${ind}</${tag}>`);
+  }
+
+  function emitCondDec(node, level, out) {
+    const ind = '  '.repeat(level); const cl = []; emitJSXDec(node.child, 0, cl);
+    if (cl.length === 1) out.push(`${ind}{${node.condition} && (${cl[0].trim()})}`);
+    else { out.push(`${ind}{${node.condition} && (`); for (const l of cl) out.push(`${ind}  ${l.trimStart()}`); out.push(`${ind})}`); }
+  }
+
+  function emitTernDec(node, level, out) {
+    const ind = '  '.repeat(level); const cl = []; emitJSXDec(node.consequent, 0, cl); const al = []; emitJSXDec(node.alternate, 0, al);
+    if (cl.length === 1 && al.length === 1) out.push(`${ind}{${node.condition} ? (${cl[0].trim()}) : (${al[0].trim()})}`);
+    else { out.push(`${ind}{${node.condition} ? (`); for (const l of cl) out.push(`${ind}  ${l.trimStart()}`); out.push(`${ind}) : (`); for (const l of al) out.push(`${ind}  ${l.trimStart()}`); out.push(`${ind})}`); }
+  }
+
+  function emitMapDec(node, level, out) {
+    const ind = '  '.repeat(level); const cl = []; emitJSXDec(node.child, 0, cl);
+    if (cl.length === 1) out.push(`${ind}{${node.collection}.map(${node.param} => (${cl[0].trim()}))}`);
+    else { out.push(`${ind}{${node.collection}.map(${node.param} => (`); for (const l of cl) out.push(`${ind}  ${l.trimStart()}`); out.push(`${ind}))}`); }
+  }
+
+  // --- Inline file decoder ---
+
+  function decodeFileFn(jsxn) {
+    if (!jsxn || !jsxn.trim()) return '';
+    const lines = jsxn.split('\n'); const output = []; let i = 0;
+    while (i < lines.length) {
+      const line = lines[i], t = line.trim();
+      if (!t) { output.push(''); i++; continue; }
+      if (t.startsWith('"use ')) { output.push(t); i++; continue; }
+      if (t.startsWith('@I ')) { output.push(decImp(t)); i++; continue; }
+      if (t.startsWith('@T ')) { output.push(decTImp(t)); i++; continue; }
+      if (/^[A-Z]/.test(t) && !t.includes('(') && t.includes('{')) { const r = decIface(lines, i); output.push(r.text); i = r.nextIdx; continue; }
+      if (/^(export\s+)?[A-Z]/.test(t) && t.includes('=') && !t.includes('(')) { output.push(decTAlias(t)); i++; continue; }
+      if (/^(export\s+(default\s+)?)?[A-Za-z_$][A-Za-z0-9_$]*\(/.test(t)) { const r = decFnBlock(lines, i); output.push(r.text); i = r.nextIdx; continue; }
+      output.push(line); i++;
+    }
+    return output.join('\n');
+  }
+
+  function decImp(line) {
+    const c = line.slice(3);
+    if (c.startsWith('"')) return `import ${c}`;
+    const ci = c.indexOf(':'); if (ci === -1) return `import ${c}`;
+    const mod = c.slice(0, ci).trim(), specStr = c.slice(ci + 1).trim();
+    const specs = specStr.split(',').map(s => s.trim()).filter(Boolean);
+    let def = null, ns = null; const parts = [];
+    for (const s of specs) { if (s.startsWith('default ')) def = s.slice(8); else if (s.startsWith('* as ')) ns = s; else parts.push(s); }
+    if (ns) return def ? `import ${def}, ${ns} from "${mod}"` : `import ${ns} from "${mod}"`;
+    if (def && parts.length) return `import ${def}, { ${parts.join(', ')} } from "${mod}"`;
+    if (def) return `import ${def} from "${mod}"`;
+    if (parts.length) return `import { ${parts.join(', ')} } from "${mod}"`;
+    return `import "${mod}"`;
+  }
+
+  function decTImp(line) {
+    const c = line.slice(3);
+    if (c.startsWith('"')) return `import type ${c}`;
+    const ci = c.indexOf(':'); if (ci === -1) return `import type ${c}`;
+    const mod = c.slice(0, ci).trim(), specStr = c.slice(ci + 1).trim();
+    const specs = specStr.split(',').map(s => s.trim()).filter(Boolean);
+    let def = null; const parts = [];
+    for (const s of specs) { if (s.startsWith('default ')) def = s.slice(8); else parts.push(s); }
+    if (def && parts.length) return `import type ${def}, { ${parts.join(', ')} } from "${mod}"`;
+    if (def) return `import type ${def} from "${mod}"`;
+    return `import type { ${parts.join(', ')} } from "${mod}"`;
+  }
+
+  function decIface(lines, si) {
+    const fl = lines[si].trim(); let pfx = '';
+    let rest = fl; if (rest.startsWith('export ')) { pfx = 'export '; rest = rest.slice(7); }
+    const nm = rest.match(/^(\w+)\s*(\{.*)$/);
+    if (nm) { const r = collectBraced(lines, si, nm[2]); return { text: `${pfx}interface ${nm[1]} ${r.fullBody}`, nextIdx: r.nextIdx }; }
+    return { text: `${pfx}${rest}`, nextIdx: si + 1 };
+  }
+
+  function collectBraced(lines, si, first) {
+    let d = 0; for (const ch of first) { if (ch === '{') d++; else if (ch === '}') d--; }
+    if (d <= 0) return { fullBody: first, nextIdx: si + 1 };
+    const parts = [first]; let idx = si + 1;
+    while (idx < lines.length && d > 0) { for (const ch of lines[idx]) { if (ch === '{') d++; else if (ch === '}') d--; } parts.push(lines[idx]); idx++; }
+    return { fullBody: parts.join('\n'), nextIdx: idx };
+  }
+
+  function decTAlias(line) {
+    let pfx = '', rest = line.trim();
+    if (rest.startsWith('export ')) { pfx = 'export '; rest = rest.slice(7); }
+    return `${pfx}type ${rest}`;
+  }
+
+  function decFnBlock(lines, si) {
+    const sig = lines[si].trim();
+    const m = sig.match(/^((?:export\s+(?:default\s+)?)?)?([A-Za-z_$][A-Za-z0-9_$]*)\((.*)$/);
+    if (!m) return { text: sig, nextIdx: si + 1 };
+    const pfx = (m[1] || '').trim(), name = m[2], pr = m[3], pe = pr.lastIndexOf(')'), params = pe >= 0 ? pr.slice(0, pe) : pr;
+    const bodyLines = []; let i = si + 1;
+    while (i < lines.length) {
+      const line = lines[i];
+      if (line.trim() === '' && i + 1 < lines.length && /^\S/.test(lines[i + 1])) break;
+      if (line.trim() === '') { bodyLines.push(''); i++; continue; }
+      if (/^\s/.test(line)) { bodyLines.push(line); i++; } else break;
+    }
+    const hooks = [], logic = []; let jsxnLines = null, inJSX = false;
+    for (const bl of bodyLines) {
+      const t = bl.trim();
+      if (t === '---') { inJSX = true; jsxnLines = []; continue; }
+      if (inJSX) { jsxnLines.push(bl.replace(/^  /, '')); continue; }
+      if (!t) continue;
+      if (t.startsWith('@state ')) { const mt = t.match(/^@state\s+(\w+)\s*=\s*(.+)$/); if (mt) { const s = 'set' + mt[1][0].toUpperCase() + mt[1].slice(1); hooks.push(`  const [${mt[1]}, ${s}] = useState(${mt[2]})`); } continue; }
+      if (t.startsWith('@ref ')) { const mt = t.match(/^@ref\s+(\w+)\s*=\s*(.+)$/); if (mt) hooks.push(`  const ${mt[1]} = useRef(${mt[2]})`); continue; }
+      if (/^[a-zA-Z_$]/.test(t) && /= use[A-Z]/.test(t)) { hooks.push(`  const ${t}`); continue; }
+      if (/^use[A-Z]/.test(t)) { hooks.push(`  ${t}`); continue; }
+      if (/^(let|var)\s+/.test(t)) logic.push(`  ${t}`);
+      else logic.push(`  const ${t}`);
+    }
+    const fp = pfx ? `${pfx} ` : '';
+    const out = [`${fp}function ${name}(${params}) {`];
+    for (const h of hooks) out.push(h);
+    if (hooks.length && logic.length) out.push('');
+    for (const l of logic) out.push(l);
+    if (jsxnLines !== null) {
+      if (hooks.length || logic.length) out.push('');
+      const jsx = decodeFn(jsxnLines.join('\n'));
+      out.push('  return (');
+      for (const l of jsx.split('\n')) out.push(l ? `    ${l}` : '');
+      out.push('  )');
+    }
+    out.push('}');
+    return { text: out.join('\n'), nextIdx: i };
+  }
+
+  // --- Inline HTML parser + encoder ---
+
+  const VOID_ELS = new Set(['area','base','br','col','embed','hr','img','input','link','meta','param','source','track','wbr']);
+  const RAW_ELS = new Set(['script','style']);
+
+  function parseHTMLInline(html) {
+    let pos = 0, doctype = null;
+    const roots = [], stack = [];
+    function cur() { return stack.length ? stack[stack.length - 1] : null; }
+    function add(n) { const p = cur(); if (p) p.children.push(n); else roots.push(n); }
+
+    while (pos < html.length) {
+      if (html[pos] === '<') {
+        if (html.startsWith('<!--', pos)) { const e = html.indexOf('-->', pos + 4); pos = e < 0 ? html.length : e + 3; continue; }
+        if (/^<!doctype\s/i.test(html.slice(pos, pos + 11))) { const e = html.indexOf('>', pos); if (e >= 0) { doctype = html.slice(pos + 2, e).trim(); pos = e + 1; } else pos = html.length; continue; }
+        if (pos + 1 < html.length && html[pos + 1] === '/') {
+          const e = html.indexOf('>', pos + 2); if (e < 0) { pos = html.length; continue; }
+          const ct = html.slice(pos + 2, e).trim().toLowerCase(); pos = e + 1;
+          for (let i = stack.length - 1; i >= 0; i--) { if (stack[i].tag === ct) { stack.length = i; break; } }
+          continue;
+        }
+        pos++;
+        const ts = pos; while (pos < html.length && !/[\s/>]/.test(html[pos])) pos++;
+        const tag = html.slice(ts, pos).toLowerCase(); if (!tag) continue;
+        const attrs = [];
+        while (pos < html.length) {
+          while (pos < html.length && /\s/.test(html[pos])) pos++;
+          if (pos >= html.length || html[pos] === '>' || html[pos] === '/') break;
+          const ns = pos; while (pos < html.length && !/[\s=/>]/.test(html[pos])) pos++; const nm = html.slice(ns, pos); if (!nm) { pos++; continue; }
+          while (pos < html.length && /\s/.test(html[pos])) pos++;
+          if (pos < html.length && html[pos] === '=') {
+            pos++; while (pos < html.length && /\s/.test(html[pos])) pos++;
+            let v = '';
+            if (pos < html.length && (html[pos] === '"' || html[pos] === "'")) { const q = html[pos]; pos++; const vs = pos; while (pos < html.length && html[pos] !== q) pos++; v = html.slice(vs, pos); if (pos < html.length) pos++; }
+            else { const vs = pos; while (pos < html.length && !/[\s>]/.test(html[pos])) pos++; v = html.slice(vs, pos); }
+            attrs.push({ name: nm, value: v });
+          } else { attrs.push({ name: nm, value: null }); }
+        }
+        const sc = pos < html.length && html[pos] === '/'; if (sc) pos++;
+        if (pos < html.length && html[pos] === '>') pos++;
+        const node = { tag, attrs, children: [] }; const isV = VOID_ELS.has(tag);
+        add(node);
+        if (!isV && !sc) stack.push(node);
+        if (RAW_ELS.has(tag) && !sc && !isV) {
+          const re = new RegExp(`</${tag}\\s*>`, 'i'), m = re.exec(html.slice(pos));
+          if (m) { const rc = html.slice(pos, pos + m.index); if (rc.trim()) node.children.push({ text: rc }); pos = pos + m.index + m[0].length; if (stack.length && stack[stack.length - 1] === node) stack.pop(); }
+        }
+      } else {
+        const ts = pos; while (pos < html.length && html[pos] !== '<') pos++;
+        const t = html.slice(ts, pos).replace(/\s+/g, ' ').trim();
+        if (t) add({ text: t });
+      }
+    }
+    return { doctype, roots };
+  }
+
+  function emitHTMLNode(node, level, lines, pa, sa) {
+    if (node.text !== undefined) { const t = node.text.trim(); if (t) lines.push(`${ind(level)}"${t}"`); return; }
+    const { tag, attrs, children } = node;
+    let cls = null, idv = null; const other = [];
+    for (const a of attrs) { if (a.name === 'class') { cls = a.value || ''; continue; } if (a.name === 'id') { idv = a.value || ''; continue; } other.push(a); }
+    const hasSel = idv !== null || cls !== null;
+    let line = (tag === 'div' && hasSel) ? '' : tag;
+    if (idv !== null) line += `#${idv}`;
+    if (cls !== null) { for (const c of cls.split(/\s+/).filter(Boolean)) line += `.${sa.get(c) ?? c}`; }
+    if (other.length) {
+      const parts = other.map(a => { const al = pa.get(a.name) ?? a.name; if (a.value === null) return al; return a.value.includes(',') ? `${al}:"${a.value}"` : `${al}:${a.value}`; });
+      line += ` {${parts.join(', ')}}`;
+    }
+    const sig = children.filter(c => c.text !== undefined ? c.text.trim().length > 0 : true);
+    if (!sig.length) { lines.push(`${ind(level)}${line}`); }
+    else if (sig.length === 1 && sig[0].text !== undefined) { lines.push(`${ind(level)}${line} "${sig[0].text.trim()}"`); }
+    else { lines.push(`${ind(level)}${line}`); for (const c of sig) emitHTMLNode(c, level + 1, lines, pa, sa); }
+  }
+
+  function analyzeHTMLTree(roots) {
+    const props = new Map(), classes = new Map();
+    function walk(nodes) {
+      for (const n of nodes) {
+        if (n.text !== undefined) continue;
+        for (const a of n.attrs) {
+          if (a.name === 'class' && a.value) { for (const c of a.value.split(/\s+/).filter(Boolean)) classes.set(c, (classes.get(c) ?? 0) + 1); continue; }
+          if (a.name === 'id') continue;
+          props.set(a.name, (props.get(a.name) ?? 0) + 1);
+        }
+        if (n.children) walk(n.children);
+      }
+    }
+    walk(roots);
+    return { components: new Map(), props, classes };
+  }
+
+  function encodeHTMLInline(html) {
+    const { doctype, roots } = parseHTMLInline(html);
+    const freq = analyzeHTMLTree(roots);
+    const aliases = generateAliases(freq);
+    const headers = formatHeaders(aliases);
+    const lines = [];
+    for (const r of roots) emitHTMLNode(r, 0, lines, aliases.props, aliases.classes);
+    const body = lines.join('\n');
+    const parts = [];
+    if (doctype) parts.push(`!${doctype}`);
+    if (headers) parts.push(headers);
+    if (parts.length && body) parts.push('');
+    parts.push(body);
+    return { output: parts.join('\n'), errors: [] };
+  }
+
+  // --- Inline HTML decoder ---
+
+  const HTML_VOID = new Set(['area','base','br','col','embed','hr','img','input','link','meta','param','source','track','wbr']);
+  const SVG_SC = new Set(['circle','ellipse','line','path','polygon','polyline','rect','stop','use','image','animate','animateMotion','animateTransform','set']);
+
+  function decodeHTMLFn(jsxn) {
+    if (!jsxn || !jsxn.trim()) return '';
+    const lines = jsxn.split('\n');
+    const rC = new Map(), rP = new Map(), rS = new Map();
+    const bodyLines = [];
+    let hasDoctype = false;
+    for (const line of lines) {
+      if (line.startsWith('@C ')) parseAH(line.slice(3), rC);
+      else if (line.startsWith('@P ')) parseAH(line.slice(3), rP);
+      else if (line.startsWith('@S ')) parseAH(line.slice(3), rS);
+      else if (line.trim().startsWith('!DOCTYPE') || line.trim().startsWith('!doctype')) hasDoctype = true;
+      else bodyLines.push(line);
+    }
+    while (bodyLines.length && !bodyLines[0].trim()) bodyLines.shift();
+    while (bodyLines.length && !bodyLines[bodyLines.length - 1].trim()) bodyLines.pop();
+    if (!bodyLines.length) return hasDoctype ? '<!DOCTYPE html>' : '';
+    const ctx = { rC, rP, rS };
+    const roots = buildDecTree(bodyLines, ctx);
+    const out = [];
+    if (hasDoctype) out.push('<!DOCTYPE html>');
+    for (const n of roots) emitHTMLDecNode(n, 0, out);
+    return out.join('\n');
+  }
+
+  function emitHTMLDecNode(node, level, out) {
+    const i = '  '.repeat(level);
+    switch (node.type) {
+      case 'fragment': for (const c of node.children) emitHTMLDecNode(c, level, out); break;
+      case 'text': out.push(`${i}${node.value}`); break;
+      case 'expression': out.push(`${i}<!-- JSXN expression: ${node.value} -->`); break;
+      case 'conditional': out.push(`${i}<!-- JSXN conditional: ${node.condition} -->`); emitHTMLDecNode(node.child, level, out); break;
+      case 'ternary': out.push(`${i}<!-- JSXN ternary: ${node.condition} -->`); emitHTMLDecNode(node.consequent, level, out); break;
+      case 'map': out.push(`${i}<!-- JSXN map: ${node.collection} -->`); emitHTMLDecNode(node.child, level, out); break;
+      case 'element': emitHTMLDecEl(node, level, out); break;
+    }
+  }
+
+  function emitHTMLDecEl(node, level, out) {
+    const i = '  '.repeat(level);
+    const { tag, id, classes, props, inlineChild, children } = node;
+    const isVoid = HTML_VOID.has(tag);
+    let op = [tag];
+    if (id) op.push(` id="${id.value}"`);
+    if (classes.length) op.push(` class="${classes.map(c => c.value).join(' ')}"`);
+    for (const p of props) {
+      if (p.type === 'spread') continue;
+      else if (p.type === 'boolean') op.push(` ${p.name}`);
+      else op.push(` ${p.name}="${p.value}"`);
+    }
+    const otag = op.join('');
+    if (isVoid) { out.push(`${i}<${otag}>`); return; }
+    if (!children.length && !inlineChild) { if (SVG_SC.has(tag)) out.push(`${i}<${otag} />`); else out.push(`${i}<${otag}></${tag}>`); return; }
+    if (!children.length && inlineChild) { out.push(`${i}<${otag}>${inlineChild.value}</${tag}>`); return; }
+    out.push(`${i}<${otag}>`);
+    if (inlineChild) out.push(`${'  '.repeat(level + 1)}${inlineChild.value}`);
+    for (const c of children) emitHTMLDecNode(c, level + 1, out);
+    out.push(`${i}</${tag}>`);
+  }
+
   // --- Token estimation ---
   // Approximate token count (~4 chars/token, standard LLM heuristic)
   function estimateTokens(text) {
@@ -1073,6 +1622,17 @@
 
   function highlightJSXN(text) {
     return text.split('\n').map(highlightLine).join('\n');
+  }
+
+  function highlightJSXLine(line) {
+    if (!line.trim()) return '';
+    let r = esc(line);
+    r = r.replace(/"[^"]*"/g, '<span class="jsxn-string">$&</span>');
+    r = r.replace(/(&lt;\/?)([\w.]+)/g, (_, b, t) => `${b}<span class="jsxn-tag">${t}</span>`);
+    r = r.replace(/(\/?&gt;)/g, '<span class="jsxn-tag">$1</span>');
+    r = r.replace(/\b(import|from|export|default|function|const|let|var|return|type|interface)\b/g, '<span class="jsxn-header">$1</span>');
+    r = r.replace(/\b([a-zA-Z][\w]*)(?==(?:&quot;|<span|{|\())/g, '<span class="jsxn-prop-key">$1</span>');
+    return r;
   }
 
   function highlightLine(line) {
@@ -1639,7 +2199,273 @@ export default function App({ initialOrders }: AppProps) {
     },
   ];
 
+  // --- Decode examples ---
+
+  const DECODE_EXAMPLES = [
+    {
+      name: 'Basic Component',
+      fullFile: true,
+      code: `@I react: useState
+
+export default Counter()
+  @state count = 0
+  ---
+  .container
+   h1 "Counter"
+   p (count)
+   button {onClick:() => setCount(count + 1)} "Increment"
+   button {onClick:() => setCount(0)} "Reset"`,
+    },
+    {
+      name: 'Map + Full File',
+      fullFile: true,
+      code: `"use client"
+@I react: useState, useCallback
+@I @/components/ui/button: Button
+@I @/components/ui/card: Card, CardHeader, CardBody
+@T @/types: Product
+
+ProductListProps {
+  initialProducts: Product[]
+}
+
+export default ProductList({ initialProducts }: ProductListProps)
+  @state products = initialProducts
+  @state search = ""
+
+  handleDelete = useCallback(async (id) => {
+    await fetch("/api/products/" + id, { method: "DELETE" });
+    setProducts(prev => prev.filter(p => p.id !== id));
+  }, [])
+  ---
+  @P onClick=k
+  @S items-center=ic, font-bold=fb, flex-col=fc
+
+  .flex.fc.gap-6.p-6
+   .flex.ic.justify-between
+    h1.text-2xl.fb "Products"
+    Button {k:() => router.push("/products/new")} "Add Product"
+   .flex.fc.gap-4
+    *products > Card {key:product.id}
+      CardHeader
+       h2.text-lg.fb (product.name)
+      CardBody
+       p.text-sm.text-gray-500 (product.description)
+       .flex.ic.gap-2.mt-4
+        Button {k:() => handleDelete(product.id)} "Delete"`,
+    },
+    {
+      name: 'Simple Snippet',
+      code: `.nav
+ a {href:/} "Home"
+ a {href:/about} "About"
+ a {href:/contact} "Contact"`,
+    },
+    {
+      name: 'Tailwind Card',
+      code: `@C Button=B
+@P onClick=k
+@S items-center=ic, font-bold=fb
+
+.max-w-sm.rounded-lg.shadow-lg.p-6
+ h2.text-xl.fb "Dashboard"
+ p.text-gray-500 "Welcome back"
+ .flex.ic.gap-4.mt-4
+  B {k:handleEdit} "Edit"
+  B {k:handleDelete, variant:ghost} "Delete"`,
+    },
+    {
+      name: 'Conditionals',
+      fullFile: true,
+      code: `@I react: useState
+@I @/components/ui/spinner: Spinner
+@I @/components/ui/alert: Alert
+
+export default UserProfile({ user, isLoading, error })
+  ---
+  .profile-container
+   ?isLoading > Spinner {size:large}
+   ?error > Alert {type:error} (error.message)
+   ?user > .profile-card
+    h2.profile-name (user.name)
+    p.profile-bio (user.bio)`,
+    },
+  ];
+
+  const HTML_EXAMPLES = [
+    {
+      name: 'Table',
+      code: `<table class="data-table">
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Email</th>
+      <th>Role</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Alice</td>
+      <td>alice@example.com</td>
+      <td>Admin</td>
+    </tr>
+    <tr>
+      <td>Bob</td>
+      <td>bob@example.com</td>
+      <td>User</td>
+    </tr>
+  </tbody>
+</table>`,
+    },
+    {
+      name: 'Card Grid',
+      code: `<div class="grid">
+  <div class="card">
+    <img src="img1.jpg" alt="Card 1" class="card-img">
+    <div class="card-body">
+      <h3 class="card-title">Project Alpha</h3>
+      <p class="card-text">A description of the first project.</p>
+      <a href="/projects/alpha" class="card-link">Learn more</a>
+    </div>
+  </div>
+  <div class="card">
+    <img src="img2.jpg" alt="Card 2" class="card-img">
+    <div class="card-body">
+      <h3 class="card-title">Project Beta</h3>
+      <p class="card-text">A description of the second project.</p>
+      <a href="/projects/beta" class="card-link">Learn more</a>
+    </div>
+  </div>
+  <div class="card">
+    <img src="img3.jpg" alt="Card 3" class="card-img">
+    <div class="card-body">
+      <h3 class="card-title">Project Gamma</h3>
+      <p class="card-text">A description of the third project.</p>
+      <a href="/projects/gamma" class="card-link">Learn more</a>
+    </div>
+  </div>
+</div>`,
+    },
+    {
+      name: 'Landing Page',
+      code: `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Landing</title>
+</head>
+<body>
+  <header>
+    <nav class="nav-bar">
+      <a href="/" class="nav-link">Home</a>
+      <a href="/about" class="nav-link">About</a>
+      <a href="/contact" class="nav-link">Contact</a>
+    </nav>
+  </header>
+  <main>
+    <h1>Welcome to our site</h1>
+    <p>This is a simple landing page with basic HTML elements.</p>
+    <img src="hero.jpg" alt="Hero image">
+  </main>
+  <footer>
+    <p>Copyright 2024</p>
+  </footer>
+</body>
+</html>`,
+    },
+    {
+      name: 'Form',
+      code: `<div class="container">
+  <h2>Sign Up</h2>
+  <form method="post" action="/signup">
+    <div class="form-group">
+      <label for="email">Email</label>
+      <input type="email" id="email" name="email" placeholder="you@example.com" required>
+    </div>
+    <div class="form-group">
+      <label for="password">Password</label>
+      <input type="password" id="password" name="password" placeholder="Enter password" required>
+    </div>
+    <button type="submit" class="btn btn-primary" disabled>Create Account</button>
+  </form>
+</div>`,
+    },
+    {
+      name: 'SVG Chart',
+      code: `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300">
+  <rect width="400" height="300" rx="16" fill="#ffffff" stroke="#e5e7eb" stroke-width="1"></rect>
+  <text x="24" y="36" font-family="system-ui" font-size="16" font-weight="600" fill="#111827">Monthly Revenue</text>
+  <text x="24" y="56" font-family="system-ui" font-size="12" fill="#6b7280">Last 6 months</text>
+  <g transform="translate(24, 80)">
+    <line x1="0" y1="0" x2="0" y2="180" stroke="#e5e7eb" stroke-width="1"></line>
+    <line x1="0" y1="180" x2="352" y2="180" stroke="#e5e7eb" stroke-width="1"></line>
+    <line x1="0" y1="90" x2="352" y2="90" stroke="#f3f4f6" stroke-dasharray="4"></line>
+    <rect x="16" y="120" width="40" height="60" rx="4" fill="#6366f1" opacity="0.8"></rect>
+    <rect x="72" y="90" width="40" height="90" rx="4" fill="#6366f1" opacity="0.8"></rect>
+    <rect x="128" y="60" width="40" height="120" rx="4" fill="#6366f1" opacity="0.8"></rect>
+    <rect x="240" y="40" width="40" height="140" rx="4" fill="#6366f1" opacity="0.8"></rect>
+    <rect x="296" y="20" width="40" height="160" rx="4" fill="#6366f1" opacity="0.8"></rect>
+    <text x="36" y="198" text-anchor="middle" font-size="10" fill="#6b7280">Jul</text>
+    <text x="92" y="198" text-anchor="middle" font-size="10" fill="#6b7280">Aug</text>
+    <text x="148" y="198" text-anchor="middle" font-size="10" fill="#6b7280">Sep</text>
+    <text x="260" y="198" text-anchor="middle" font-size="10" fill="#6b7280">Nov</text>
+    <text x="316" y="198" text-anchor="middle" font-size="10" fill="#6b7280">Dec</text>
+  </g>
+</svg>`,
+    },
+  ];
+
+  const HTML_DECODE_EXAMPLES = [
+    {
+      name: 'With DOCTYPE',
+      code: `!DOCTYPE html
+
+html {lang:en}
+ head
+  meta {charset:UTF-8}
+  title "My Page"
+ body
+  header
+   h1 "Hello World"
+  main
+   p "Welcome to my page."
+   img {src:photo.jpg, alt:A photo}
+   br
+  footer
+   p "Copyright 2024"`,
+    },
+    {
+      name: 'Navigation',
+      code: `nav.nav-bar
+ a.nav-link {href:/} "Home"
+ a.nav-link {href:/about} "About"
+ a.nav-link {href:/contact} "Contact"`,
+    },
+    {
+      name: 'Form',
+      code: `.container
+ h2 "Sign Up"
+ form {method:post, action:/signup}
+  .form-group
+   label {for:email} "Email"
+   input {type:email, id:email, name:email, placeholder:you@example.com, required}
+  .form-group
+   label {for:password} "Password"
+   input {type:password, id:password, name:password, placeholder:Enter password, required}
+  button.btn.btn-primary {type:submit, disabled} "Create Account"`,
+    },
+    {
+      name: 'SVG Icon',
+      code: `svg {xmlns:http://www.w3.org/2000/svg, viewBox:0 0 24 24, fill:none, stroke:currentColor, stroke-width:2, stroke-linecap:round, stroke-linejoin:round}
+ circle {cx:12, cy:12, r:10}
+ line {x1:12, y1:8, x2:12, y2:12}
+ line {x1:12, y1:16, x2:12.01, y2:16}`,
+    },
+  ];
+
   let currentFullFile = false;
+  let currentMode = 'encode'; // 'encode' | 'decode'
+  let currentFormat = 'jsx'; // 'jsx' | 'html'
 
   const outputEl = document.getElementById('output');
   const errorEl = document.getElementById('error');
@@ -1647,6 +2473,8 @@ export default function App({ initialOrders }: AppProps) {
   const inputCharsEl = document.getElementById('input-chars');
   const outputCharsEl = document.getElementById('output-chars');
   const encodeBtn = document.getElementById('encode-btn');
+  const inputLabelEl = document.getElementById('input-label');
+  const outputLabelEl = document.getElementById('output-label');
   const statInputTok = document.getElementById('stat-input-tok');
   const statOutputTok = document.getElementById('stat-output-tok');
   const statSavedTok = document.getElementById('stat-saved-tok');
@@ -1672,6 +2500,81 @@ export default function App({ initialOrders }: AppProps) {
     parent: document.getElementById('editor-wrap'),
   });
 
+  // --- JSXN validation ---
+
+  function validateJSXNFile(code) {
+    const warnings = [];
+    const lines = code.split('\n');
+    let inFunction = false;
+    let inJSXBody = false;
+    let fnIndent = -1;
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const trimmed = line.trim();
+      const indent = line.length - line.trimStart().length;
+      if (!trimmed) continue;
+
+      // Track function blocks
+      if (/^(export\s+(default\s+)?)?[A-Za-z_$][A-Za-z0-9_$]*\(/.test(trimmed) && indent === 0) {
+        inFunction = true;
+        inJSXBody = false;
+        fnIndent = 0;
+        continue;
+      }
+
+      // Detect @state/@ref outside function block
+      if ((trimmed.startsWith('@state ') || trimmed.startsWith('@ref ')) && indent === 0) {
+        warnings.push(`Line ${i + 1}: \`${trimmed.split(' ')[0]} ${trimmed.split(' ')[1]}\` — hooks should be indented under a function`);
+        continue;
+      }
+
+      // Detect --- at wrong indentation
+      if (trimmed === '---') {
+        if (!inFunction || indent === 0) {
+          warnings.push(`Line ${i + 1}: \`---\` separator outside a function block`);
+        } else {
+          inJSXBody = true;
+        }
+        continue;
+      }
+
+      // If we were in a function and hit a non-indented line (not a known top-level pattern)
+      if (inFunction && indent === 0) {
+        const isTopLevel = trimmed.startsWith('@I ') || trimmed.startsWith('@T ') ||
+          trimmed.startsWith('"use ') || /^(export\s+)?[A-Z]/.test(trimmed);
+        if (!isTopLevel) {
+          // Looks like JSXN body that should be inside a function
+          if (/^[.#?*_a-z]/.test(trimmed) || /^[A-Z][a-z]/.test(trimmed)) {
+            warnings.push(`Line ${i + 1}: \`${trimmed.slice(0, 30)}${trimmed.length > 30 ? '...' : ''}\` — looks like JSX body but is at the top level (missing indentation?)`);
+          }
+          inFunction = false;
+          inJSXBody = false;
+        }
+      }
+    }
+
+    return warnings;
+  }
+
+  function validateJSXNSnippet(code) {
+    const warnings = [];
+    const lines = code.split('\n');
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (!line) continue;
+      let depth = 0;
+      for (const ch of line) {
+        if (ch === '{') depth++;
+        else if (ch === '}') depth--;
+      }
+      if (depth !== 0) {
+        warnings.push(`Line ${i + 1}: unbalanced braces`);
+      }
+    }
+    return warnings;
+  }
+
   function run() {
     const code = editor.state.doc.toString();
     errorEl.classList.remove('visible');
@@ -1679,10 +2582,12 @@ export default function App({ initialOrders }: AppProps) {
     warningEl.classList.remove('visible');
     warningEl.textContent = '';
 
+    const actionLabel = currentMode === 'encode' ? 'Encode' : 'Decode';
+
     if (!code.trim()) {
       outputEl.innerHTML = '';
       outputEl.classList.add('empty');
-      outputEl.textContent = 'Click "Encode" or press Cmd+Enter';
+      outputEl.textContent = `Click "${actionLabel}" or press Cmd+Enter`;
       inputCharsEl.innerHTML = '';
       outputCharsEl.innerHTML = '';
       resetStats();
@@ -1690,34 +2595,67 @@ export default function App({ initialOrders }: AppProps) {
     }
 
     try {
-      const { output: result, errors } = currentFullFile ? encodeFile(code) : encode(code);
-
-      if (errors.length > 0) {
-        const msgs = errors.map(e => `Line ${e.loc?.line ?? '?'}: ${e.message}`);
-        warningEl.textContent = `Parse warning${errors.length > 1 ? 's' : ''}: ${msgs.join(' | ')}`;
-        warningEl.classList.add('visible');
+      let result;
+      if (currentMode === 'encode') {
+        if (currentFormat === 'html') {
+          const { output, errors } = encodeHTMLInline(code);
+          result = output;
+        } else {
+          const { output, errors } = currentFullFile ? encodeFile(code) : encode(code);
+          result = output;
+          if (errors.length > 0) {
+            const msgs = errors.map(e => `Line ${e.loc?.line ?? '?'}: ${e.message}`);
+            warningEl.textContent = `Parse warning${errors.length > 1 ? 's' : ''}: ${msgs.join(' | ')}`;
+            warningEl.classList.add('visible');
+          }
+        }
+        outputEl.innerHTML = highlightJSXN(result);
+      } else {
+        if (currentFormat === 'html') {
+          result = decodeHTMLFn(code);
+          outputEl.innerHTML = result.split('\n').map(l => highlightJSXLine(l)).join('\n');
+        } else {
+          const warnings = currentFullFile ? validateJSXNFile(code) : validateJSXNSnippet(code);
+          if (warnings.length > 0) {
+            warningEl.textContent = `Syntax warning${warnings.length > 1 ? 's' : ''}: ${warnings.join(' | ')}`;
+            warningEl.classList.add('visible');
+          }
+          result = currentFullFile ? decodeFileFn(code) : decodeFn(code);
+          outputEl.innerHTML = result.split('\n').map(l => highlightJSXLine(l)).join('\n');
+        }
       }
 
-      outputEl.innerHTML = highlightJSXN(result);
       outputEl.classList.remove('empty');
 
       const inLen = code.length;
       const outLen = result.length;
-      const saved = inLen - outLen;
-      const pct = inLen > 0 ? ((saved / inLen) * 100) : 0;
 
       const inTok = estimateTokens(code);
       const outTok = estimateTokens(result);
-      const savedTok = inTok - outTok;
 
       inputCharsEl.innerHTML = `<span class="tok-value">~${inTok.toLocaleString()}</span> <span class="tok-label">tokens</span>`;
       outputCharsEl.innerHTML = `<span class="tok-value">~${outTok.toLocaleString()}</span> <span class="tok-label">tokens</span>`;
 
-      statInputTok.textContent = '~' + inTok.toLocaleString();
-      statOutputTok.textContent = '~' + outTok.toLocaleString();
-      statSavedTok.textContent = '~' + savedTok.toLocaleString();
-      statPct.textContent = pct.toFixed(1) + '%';
-      compressionFill.style.width = Math.max(0, Math.min(100, pct)) + '%';
+      if (currentMode === 'encode') {
+        const saved = inLen - outLen;
+        const pct = inLen > 0 ? ((saved / inLen) * 100) : 0;
+        const savedTok = inTok - outTok;
+        statInputTok.textContent = '~' + inTok.toLocaleString();
+        statOutputTok.textContent = '~' + outTok.toLocaleString();
+        statSavedTok.textContent = '~' + savedTok.toLocaleString();
+        statPct.textContent = pct.toFixed(1) + '%';
+        compressionFill.style.width = Math.max(0, Math.min(100, pct)) + '%';
+      } else {
+        // In decode mode, show expansion ratio
+        const expanded = outLen - inLen;
+        const pct = outLen > 0 ? ((expanded / outLen) * 100) : 0;
+        const expandedTok = outTok - inTok;
+        statInputTok.textContent = '~' + inTok.toLocaleString();
+        statOutputTok.textContent = '~' + outTok.toLocaleString();
+        statSavedTok.textContent = '~' + expandedTok.toLocaleString();
+        statPct.textContent = pct.toFixed(1) + '%';
+        compressionFill.style.width = Math.max(0, Math.min(100, pct)) + '%';
+      }
     } catch (e) {
       errorEl.textContent = e.message;
       errorEl.classList.add('visible');
@@ -1733,32 +2671,87 @@ export default function App({ initialOrders }: AppProps) {
   }
 
   function loadExample(idx) {
-    const ex = EXAMPLES[idx];
+    const examples = currentFormat === 'html'
+      ? (currentMode === 'encode' ? HTML_EXAMPLES : HTML_DECODE_EXAMPLES)
+      : (currentMode === 'encode' ? EXAMPLES : DECODE_EXAMPLES);
+    const ex = examples[idx];
     currentFullFile = !!ex.fullFile;
     editor.dispatch({
       changes: { from: 0, to: editor.state.doc.length, insert: ex.code },
     });
-    // Update active button
     document.querySelectorAll('.example-btn').forEach((btn, i) => {
       btn.classList.toggle('active', i === idx);
     });
     run();
   }
 
-  // Build example buttons
-  const examplesBar = document.querySelector('.examples');
-  EXAMPLES.forEach((ex, i) => {
-    const btn = document.createElement('button');
-    btn.className = 'example-btn';
-    btn.textContent = ex.name;
-    btn.addEventListener('click', () => loadExample(i));
-    examplesBar.appendChild(btn);
-  });
+  function buildExampleButtons() {
+    const examplesBar = document.querySelector('.examples');
+    // Remove old buttons (keep the label)
+    examplesBar.querySelectorAll('.example-btn').forEach(b => b.remove());
+    const examples = currentFormat === 'html'
+      ? (currentMode === 'encode' ? HTML_EXAMPLES : HTML_DECODE_EXAMPLES)
+      : (currentMode === 'encode' ? EXAMPLES : DECODE_EXAMPLES);
+    examples.forEach((ex, i) => {
+      const btn = document.createElement('button');
+      btn.className = 'example-btn';
+      btn.textContent = ex.name;
+      btn.addEventListener('click', () => loadExample(i));
+      examplesBar.appendChild(btn);
+    });
+  }
+
+  // Mode switching
+  function updateLabels() {
+    const fmt = currentFormat === 'html' ? 'HTML' : 'JSX';
+    if (currentMode === 'encode') {
+      inputLabelEl.textContent = `${fmt} input`;
+      outputLabelEl.textContent = 'JSXN output';
+      encodeBtn.textContent = 'Encode';
+      document.getElementById('stat-saved-label').textContent = 'saved';
+    } else {
+      inputLabelEl.textContent = 'JSXN input';
+      outputLabelEl.textContent = `${fmt} output`;
+      encodeBtn.textContent = 'Decode';
+      document.getElementById('stat-saved-label').textContent = 'expanded';
+    }
+  }
+
+  window.setMode = function(mode) {
+    if (mode === currentMode) return;
+    currentMode = mode;
+
+    document.getElementById('mode-encode').classList.toggle('active', mode === 'encode');
+    document.getElementById('mode-decode').classList.toggle('active', mode === 'decode');
+
+    updateLabels();
+    buildExampleButtons();
+    loadExample(0);
+  };
+
+  window.setFormat = function(fmt) {
+    if (fmt === currentFormat) return;
+    currentFormat = fmt;
+
+    document.getElementById('fmt-jsx').classList.toggle('active', fmt === 'jsx');
+    document.getElementById('fmt-html').classList.toggle('active', fmt === 'html');
+
+    updateLabels();
+    buildExampleButtons();
+    loadExample(0);
+  };
 
   encodeBtn.addEventListener('click', run);
 
-  // Load first example on startup
-  loadExample(0);
+  // Check URL hash for initial mode/format
+  if (window.location.hash === '#decode') {
+    setMode('decode');
+  } else if (window.location.hash === '#html') {
+    setFormat('html');
+  } else {
+    buildExampleButtons();
+    loadExample(0);
+  }
 </script>
 </body>
 </html>

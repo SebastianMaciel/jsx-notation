@@ -19,6 +19,7 @@
   }
 
   .hero { text-align: center; margin-bottom: 40px; }
+  .hero .logo { margin-bottom: 16px; }
   .hero h1 { font-size: 48px; font-weight: 700; color: #fff; letter-spacing: -0.03em; margin-bottom: 12px; }
   .hero p { font-size: 17px; color: #888; line-height: 1.5; max-width: 540px; margin: 0 auto; }
   .hero .accent { color: #4ade80; font-weight: 500; }
@@ -296,6 +297,12 @@
 <body>
 
 <div class="hero">
+  <svg class="logo" width="120" height="40" viewBox="0 0 120 40" fill="none">
+    <path d="M8,5 H22 M17,5 V27 C17,34 8,35 3,29" stroke="#fff" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M43,11 C43,4 29,3 29,12 C29,20 43,20 43,28 C43,36 29,36 29,28" stroke="#fff" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M53,5 L69,35 M69,5 L53,35" stroke="#fff" stroke-width="4.5" stroke-linecap="round"/>
+    <path d="M79,35 V5 L97,35 V5" stroke="#4ade80" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>
   <h1>JSXN</h1>
   <p>Your React components eat context window for breakfast.<br>
   JSXN compresses them so your AI reads <span class="accent">~40% more code</span>.</p>
@@ -388,6 +395,7 @@
 
   <div class="bottom-links">
     <a href="editor.html">Try the encoder &rarr;</a>
+    <a href="editor.html#decode">Try the decoder &rarr;</a>
     <a href="https://github.com/SebastianMaciel/jsx-notation" target="_blank" rel="noopener noreferrer">GitHub &rarr;</a>
   </div>
 

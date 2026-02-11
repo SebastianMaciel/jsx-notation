@@ -1,0 +1,21 @@
+<div class="container">
+  <h2>Sign Up</h2>
+  <form method="post" action="/signup">
+    <div class="form-group">
+      <label for="email">Email</label>
+      <input type="email" id="email" name="email" placeholder="you@example.com" required>
+    </div>
+    <div class="form-group">
+      <label for="password">Password</label>
+      <input type="password" id="password" name="password" placeholder="Enter password" required>
+    </div>
+    <div class="form-group">
+      <label for="role">Role</label>
+      <select id="role" name="role">
+        <option value="user">User</option>
+        <option value="admin">Admin</option>
+      </select>
+    </div>
+    <button type="submit" class="btn btn-primary" disabled>Create Account</button>
+  </form>
+</div>

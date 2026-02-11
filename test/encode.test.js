@@ -451,7 +451,7 @@ export default function Page() {
     expect(result).toContain('---');
   });
 
-  it('strips const/let from logic lines', () => {
+  it('strips const but preserves let/var in logic lines', () => {
     const code = `export default function A() {
   const data = fetchData()
   let count = data.length
@@ -459,6 +459,28 @@ export default function Page() {
 }`;
     const result = encodeFile(code);
     expect(result).toMatch(/^\s+data = fetchData\(\)/m);
-    expect(result).toMatch(/^\s+count = data\.length/m);
+    expect(result).toMatch(/^\s+let count = data\.length/m);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// SVG in JSX
+// ---------------------------------------------------------------------------
+
+describe('SVG in JSX encoding', () => {
+  it('encodes SVG elements', () => {
+    const result = encode('<svg viewBox="0 0 24 24"><circle cx={12} cy={12} r={10} /></svg>');
+    expect(result).toContain('svg {viewBox:0 0 24 24}');
+    expect(result).toContain('circle {cx:12, cy:12, r:10}');
+  });
+
+  it('quotes JSX prop values containing commas', () => {
+    const result = encode('<g transform="translate(10, 20)"><rect /></g>');
+    expect(result).toContain('transform:"translate(10, 20)"');
+  });
+
+  it('encodes SVG path data', () => {
+    const result = encode('<path d="M12 6v6l4 2" />');
+    expect(result).toBe('path {d:M12 6v6l4 2}');
   });
 });

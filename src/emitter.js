@@ -344,7 +344,13 @@ function formatProps(props, propAlias, code) {
     const alias = propAlias.get(p.propName) ?? p.propName;
     const val = extractAttrValue(p.attr, code);
     if (val.type === 'boolean') { parts.push(alias); continue; }
-    parts.push(`${alias}:${val.value}`);
+    // Quote values containing commas to avoid delimiter confusion
+    const raw = val.value;
+    if (raw.includes(',')) {
+      parts.push(`${alias}:"${raw}"`);
+    } else {
+      parts.push(`${alias}:${raw}`);
+    }
   }
   return `{${parts.join(', ')}}`;
 }

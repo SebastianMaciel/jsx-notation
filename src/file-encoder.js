@@ -228,7 +228,7 @@ function processVariableDeclaration(stmt, code, prefix) {
   }
 
   const raw = code.slice(stmt.start, stmt.end);
-  return prefix + raw.replace(/^(const|let|var)\s+/, '');
+  return prefix + raw.replace(/^const\s+/, '');
 }
 
 /**
@@ -283,7 +283,7 @@ function processComponentFunction(funcNode, code, prefix, forceName) {
 
     // Other logic: strip const/let/var, indent
     const raw = code.slice(stmt.start, stmt.end);
-    const stripped = raw.replace(/^(const|let|var)\s+/, '');
+    const stripped = raw.replace(/^const\s+/, '');
     logicLines.push('  ' + stripped);
   }
 

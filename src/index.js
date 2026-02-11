@@ -3,6 +3,9 @@ import { emit } from './emitter.js';
 import { analyze } from './analyzer.js';
 import { generateAliases, formatHeaders } from './alias.js';
 export { encodeFile } from './file-encoder.js';
+export { encodeHTML } from './html-encoder.js';
+export { decode } from './decoder.js';
+export { decodeFile } from './file-decoder.js';
 
 /**
  * Encode JSX/TSX source code into JSXN notation.

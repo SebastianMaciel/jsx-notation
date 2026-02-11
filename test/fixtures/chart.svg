@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="150" viewBox="0 0 200 150">
+  <rect width="200" height="150" rx="8" fill="#f8fafc" stroke="#e2e8f0" />
+  <text x="16" y="28" font-family="system-ui, sans-serif" font-size="14" fill="#1e293b">Revenue</text>
+  <g transform="translate(16, 40)">
+    <line x1="0" y1="90" x2="168" y2="90" stroke="#e2e8f0" />
+    <rect x="8" y="50" width="24" height="40" rx="2" fill="#6366f1" />
+    <rect x="48" y="30" width="24" height="60" rx="2" fill="#6366f1" />
+    <rect x="88" y="10" width="24" height="80" rx="2" fill="#6366f1" />
+    <rect x="128" y="40" width="24" height="50" rx="2" fill="#6366f1" />
+  </g>
+</svg>
