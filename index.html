@@ -207,6 +207,136 @@
     font-style: italic;
   }
 
+  .explainer {
+    background: #0f0f0f;
+    border: 1px solid #1e1e1e;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .explainer summary {
+    padding: 16px 20px;
+    font-size: 15px;
+    font-weight: 500;
+    color: #ccc;
+    cursor: pointer;
+    list-style: none;
+  }
+  .explainer summary::-webkit-details-marker { display: none; }
+  .explainer summary::after {
+    content: "+";
+    float: right;
+    color: #888;
+  }
+  .explainer[open] summary::after {
+    content: "\2212";
+  }
+  .explainer-body {
+    padding: 0 20px 20px;
+  }
+  .steps {
+    list-style: none;
+    counter-reset: step;
+    padding: 0;
+  }
+  .steps li {
+    counter-increment: step;
+    padding: 14px 0;
+    border-bottom: 1px solid #1a1a1a;
+    font-size: 14px;
+    color: #ccc;
+    line-height: 1.5;
+  }
+  .steps li:last-child { border-bottom: none; }
+  .steps li::before {
+    content: counter(step);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #1a1a1a;
+    color: #4ade80;
+    font-size: 12px;
+    font-weight: 600;
+    margin-right: 12px;
+    flex-shrink: 0;
+    vertical-align: top;
+  }
+  .step-text { display: inline; }
+  .step-example {
+    display: block;
+    margin: 10px 0 0 36px;
+    padding: 10px 14px;
+    background: #141414;
+    border: 1px solid #1a1a1a;
+    border-radius: 6px;
+    font-family: "SF Mono", "Fira Code", "JetBrains Mono", Consolas, monospace;
+    font-size: 12px;
+    line-height: 1.6;
+    color: #999;
+    white-space: pre;
+    overflow-x: auto;
+  }
+  .step-example .ex-label {
+    display: block;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #555;
+    margin-bottom: 6px;
+  }
+  .step-example .ex-green { color: #4ade80; }
+  .step-example .ex-dim { color: #555; }
+  .step-example .ex-highlight { color: #ccc; }
+  .ex-diff-add {
+    display: block;
+    background: rgba(74, 222, 128, 0.08);
+    border-left: 2px solid #4ade80;
+    margin: 0 -14px;
+    padding: 0 12px;
+    color: #4ade80;
+  }
+  .step-vs {
+    display: flex;
+    gap: 10px;
+    margin: 10px 0 0 36px;
+  }
+  .step-vs-col {
+    flex: 1;
+    min-width: 0;
+  }
+  .step-vs-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #555;
+    margin-bottom: 6px;
+  }
+  .step-vs-label.with { color: #4ade80; }
+  .step-vs-code {
+    padding: 10px 12px;
+    background: #141414;
+    border: 1px solid #1a1a1a;
+    border-radius: 6px;
+    font-family: "SF Mono", "Fira Code", "JetBrains Mono", Consolas, monospace;
+    font-size: 11px;
+    line-height: 1.5;
+    color: #999;
+    white-space: pre;
+    overflow-x: auto;
+  }
+  .step-vs-code.with-border { border-color: rgba(74, 222, 128, 0.2); }
+  .explainer-note {
+    margin-top: 16px;
+    padding: 12px 16px;
+    background: #141414;
+    border-left: 2px solid #4ade80;
+    font-size: 13px;
+    color: #888;
+    line-height: 1.5;
+  }
 
   .install-block {
     background: #0f0f0f;
@@ -338,10 +468,46 @@
     .card { max-width: 100%; }
     .line { font-size: 12px; padding: 0 16px 0 24px; }
     .transform-grid { grid-template-columns: 1fr; }
+    .step-vs { flex-direction: column; }
   }
   @media (max-width: 480px) {
-    .hero h1 { font-size: 28px; }
-    .line { font-size: 11px; padding: 0 12px 0 20px; }
+    body { padding: 20px 12px; }
+    .hero { margin-bottom: 24px; }
+    .hero .logo { width: 56px; height: 32px; }
+    .hero h1 { font-size: 28px; margin-bottom: 8px; }
+    .hero p { font-size: 14px; }
+    .hero .hero-sub { font-size: 12px; }
+    .card { border-radius: 8px; }
+    .card-body { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .line { font-size: 11px; padding: 0 12px 0 16px; }
+    .token-counter { min-height: 44px; }
+    .token-counter .tokens { font-size: 22px; }
+    .token-counter .tok-unit { font-size: 13px; }
+    .token-counter .tok-arrow { margin: 0 6px; }
+    .token-counter .savings { font-size: 13px; }
+    .token-counter-section { margin-top: 20px; }
+    .content { margin-top: 20px; }
+    .section { margin-top: 40px; }
+    .section h2 { font-size: 20px; }
+    .section .subtext { font-size: 13px; margin-bottom: 16px; }
+    .transform-card { padding: 12px; }
+    .transform-card .label { font-size: 10px; margin-bottom: 6px; }
+    .transform-card .before,
+    .transform-card .after { font-size: 11px; }
+    .oneclick-btn { width: 100%; justify-content: center; font-size: 13px; padding: 10px 14px; }
+    .install-block { font-size: 11px; padding: 12px; overflow-x: auto; }
+    .install-label { font-size: 12px; }
+    .install-label code { font-size: 11px; }
+    .install-note { font-size: 12px; padding: 10px 12px; }
+    .steps li { font-size: 13px; }
+    .steps li::before { width: 20px; height: 20px; font-size: 11px; margin-right: 10px; }
+    .step-example { margin-left: 30px; font-size: 11px; padding: 8px 10px; }
+    .step-vs { flex-direction: column; margin-left: 30px; }
+    .step-vs-code { font-size: 10px; }
+    .explainer-note { font-size: 12px; }
+    .bottom-links { flex-direction: column; align-items: center; gap: 14px; margin-top: 48px; }
+    .bottom-links a { font-size: 14px; }
+    footer { margin-top: 40px; font-size: 12px; }
   }
 
   .skip-link {
@@ -408,6 +574,106 @@
     <h2>Each line, compressed</h2>
     <p class="subtext">10 deterministic transforms, top to bottom. Fully reversible.</p>
     <div class="transform-grid" id="transform-grid" role="list" aria-label="Compression transforms"></div>
+  </section>
+
+  <section class="section" id="how-it-works">
+    <h2>How it works</h2>
+    <details class="explainer">
+      <summary>See the full flow</summary>
+      <div class="explainer-body">
+        <ol class="steps">
+
+          <li><span class="step-text">You type something in the chat.</span>
+            <span class="step-example"><span class="ex-label">Your prompt</span><span class="ex-highlight">Fix the bug in LoginForm &mdash; the submit button doesn't disable while loading</span></span>
+          </li>
+
+          <li><span class="step-text">Your message is sent to the AI model. Along with it, the client sends every <strong>available tool</strong> the model can call &mdash; the built-in file reader, the editor, the terminal, etc. If the JSXN MCP is installed, <code>read_jsxn</code> and <code>write_jsxn</code> appear <strong>alongside</strong> the built-in tools. The model sees all of them.</span></li>
+
+          <li><span class="step-text">The model decides it needs to read your file. It sees both the built-in reader and <code>read_jsxn</code>. It reads the descriptions, finds <em>&ldquo;~40% fewer tokens &mdash; use this instead of reading JSX/TSX files directly&rdquo;</em>, and picks <code>read_jsxn</code>.</span>
+            <span class="step-example"><span class="ex-label">Tool call from the model</span><span class="ex-green">read_jsxn</span>({ path: <span class="ex-highlight">"src/LoginForm.tsx"</span> })</span>
+          </li>
+
+          <li><span class="step-text">The client routes the call to the JSXN MCP server. The server reads <code>LoginForm.tsx</code> from disk, runs it through the encoder, and returns compressed JSXN instead of the raw source.</span>
+            <div class="step-vs">
+              <div class="step-vs-col">
+                <div class="step-vs-label">Without JSXN &mdash; raw file, ~195 tokens</div>
+                <div class="step-vs-code">import { useState } from "react";
+import { Button } from "./ui/Button";
+
+export default function LoginForm() {
+  const [loading, setLoading] =
+    useState(false);
+
+  return (
+    &lt;form className="login-form"&gt;
+      &lt;input className="field" /&gt;
+      &lt;Button
+        onClick={() =&gt; submit()}
+      &gt;
+        Submit
+      &lt;/Button&gt;
+    &lt;/form&gt;
+  );
+}</div>
+              </div>
+              <div class="step-vs-col">
+                <div class="step-vs-label with">With JSXN &mdash; what the model receives, ~116 tokens</div>
+                <div class="step-vs-code with-border">@I react: useState
+@I ./ui/Button: Button
+
+export default LoginForm()
+@state loading = false
+---
+form.login-form
+  input.field
+  Button {onClick:() =&gt; submit()}
+    "Submit"</div>
+              </div>
+            </div>
+          </li>
+
+          <li><span class="step-text">The model reads the JSXN and understands it natively &mdash; same information, fewer tokens. It figures out the bug and prepares the fix.</span></li>
+
+          <li><span class="step-text">To save the fix, the model calls <code>write_jsxn</code>. The tool description includes the full JSXN format reference, so the model writes its changes in JSXN notation &mdash; a 1:1 mapping to JSX, no information lost.</span>
+            <span class="step-example"><span class="ex-label">Tool call from the model</span><span class="ex-green">write_jsxn</span>({
+  path: <span class="ex-highlight">"src/LoginForm.tsx"</span>,
+  code: <span class="ex-highlight">`@I react: useState
+@I ./ui/Button: Button
+
+export default LoginForm()
+@state loading = false
+---
+form.login-form
+  input.field
+<span class="ex-diff-add">  Button {onClick:() =&gt; submit(), disabled:loading}</span>
+    "Submit"`</span>
+})</span>
+          </li>
+
+          <li><span class="step-text">The client routes this call to the JSXN MCP server. The server decodes the JSXN back to standard JSX and writes the normal file to disk. You see clean, familiar code.</span>
+            <span class="step-example"><span class="ex-label">What gets written to src/LoginForm.tsx</span>import { useState } from "react";
+import { Button } from "./ui/Button";
+
+export default function LoginForm() {
+  const [loading, setLoading] = useState(false);
+
+  return (
+    &lt;form className="login-form"&gt;
+      &lt;input className="field" /&gt;
+<span class="ex-diff-add">      &lt;Button onClick={() =&gt; submit()} disabled={loading}&gt;</span>
+        Submit
+      &lt;/Button&gt;
+    &lt;/form&gt;
+  );
+}</span>
+          </li>
+
+          <li><span class="step-text"><strong>Your files never change format.</strong> JSXN only exists in the traffic between the AI model and your codebase &mdash; invisible to you, your team, and your git history.</span></li>
+
+        </ol>
+        <p class="explainer-note">JSXN does <strong>not</strong> compress code you paste in the chat. It only kicks in when the AI calls a tool to read files from your project on its own.</p>
+      </div>
+    </details>
   </section>
 
   <section class="section" id="get-started">
