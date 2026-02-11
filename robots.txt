@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://sebastianmaciel.github.io/jsx-notation/sitemap.xml
