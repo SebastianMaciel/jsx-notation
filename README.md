@@ -23,7 +23,7 @@ JSXN strips the redundancy while keeping the meaning:
 </Modal>
 ```
 
-```
+```scss
 // After: 170 chars
 @C Modal=M, Button=B
 @P onClick=k, disabled=x, isOpen=io, onClose=oc
@@ -49,7 +49,7 @@ Works for HTML too:
 </table>
 ```
 
-```
+```scss
 // After: 188 chars
 table.data-table
  thead
@@ -81,7 +81,7 @@ Works for SVG too:
 </svg>
 ```
 
-```
+```scss
 // After: 251 chars
 svg {xmlns:http://www.w3.org/2000/svg, viewBox:0 0 24 24, fill:none, stroke:currentColor, stroke-width:2, stroke-linecap:round, stroke-linejoin:round}
  circle {cx:12, cy:12, r:10}
@@ -146,7 +146,7 @@ The server exposes four tools:
 
 Add this to your `CLAUDE.md` or `.cursorrules` so the assistant prefers JSXN:
 
-```
+```text
 When you need to read .jsx, .tsx, .js, .ts, .html, or .svg files for context,
 use the read_jsxn tool from the jsx-notation MCP server. It returns JSXN compact
 notation (~40% fewer tokens) that you understand perfectly.
@@ -154,25 +154,7 @@ notation (~40% fewer tokens) that you understand perfectly.
 
 ## Library usage
 
-```js
-import { encode, encodeFile, encodeHTML, decode } from 'jsx-notation';
-
-// Encode a JSX snippet
-const jsxn = encode('<Button onClick={go}>Save</Button>');
-
-// Encode a complete file (imports, types, hooks, logic + JSX)
-const full = encodeFile(fileContents);
-
-// Encode HTML or SVG
-const htmlJsxn = encodeHTML('<div class="card"><p>Hello</p></div>');
-const svgJsxn = encodeHTML('<svg viewBox="0 0 24 24"><circle cx="12" r="10" /></svg>');
-
-// Decode back to JSX (default)
-const jsx = decode(jsxn);
-
-// Decode back to HTML/SVG
-const html = decode(htmlJsxn, { format: 'html' });
-```
+The library is also available for programmatic use: `encode`, `encodeFile`, `encodeHTML`, `decode`, `decodeFile`.
 
 ## Notation reference
 
