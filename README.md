@@ -91,12 +91,6 @@ svg {xmlns:http://www.w3.org/2000/svg, viewBox:0 0 24 24, fill:none, stroke:curr
 
 Indentation replaces closing tags. `.class` and `#id` work like CSS selectors. Frequent components, props, and CSS classes get short aliases. Values with commas are quoted to avoid delimiter confusion.
 
-## Install
-
-```bash
-npm install jsx-notation
-```
-
 ## Quick start: MCP server
 
 The main use case — let your AI assistant read JSX/HTML/SVG files in compressed form.
@@ -154,7 +148,7 @@ notation (~40% fewer tokens) that you understand perfectly.
 
 ## Library usage
 
-The library is also available for programmatic use: `encode`, `encodeFile`, `encodeHTML`, `decode`, `decodeFile`.
+For programmatic use: `npm install jsx-notation` — exports `encode`, `encodeFile`, `encodeHTML`, `decode`, `decodeFile`.
 
 ## Notation reference
 
