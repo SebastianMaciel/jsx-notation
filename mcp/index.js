@@ -18,6 +18,54 @@ const MAX_INPUT_LENGTH = 10 * 1024 * 1024;
 const ALLOWED_EXTENSIONS = new Set(['.jsx', '.tsx', '.js', '.ts', '.html', '.svg']);
 
 // ---------------------------------------------------------------------------
+// Stats — stderr only, never sent to the model
+// ---------------------------------------------------------------------------
+
+const A = { reset: '\x1b[0m', dim: '\x1b[2m', bold: '\x1b[1m', green: '\x1b[32m', greenBold: '\x1b[1;32m', cyan: '\x1b[36m', white: '\x1b[37m' };
+let session = { full: 0, compressed: 0, reads: 0, writes: 0 };
+
+function tok(chars) { return Math.ceil(chars / 4); }
+function fmtN(n) { return n >= 1000 ? (n / 1000).toFixed(1) + 'k' : String(n); }
+
+function logRead(filePath, originalLen, compressedLen) {
+  session.full += originalLen;
+  session.compressed += compressedLen;
+  session.reads++;
+  const pct = Math.round((1 - compressedLen / originalLen) * 100);
+  console.error(
+    `${A.green}JSXN ${A.dim}read${A.reset}  ${A.white}${filePath}${A.reset}  ` +
+    `${A.dim}~${fmtN(tok(originalLen))} → ${A.green}~${fmtN(tok(compressedLen))}${A.reset} ${A.dim}tokens${A.reset}  ` +
+    `${A.greenBold}−${pct}%${A.reset}`
+  );
+}
+
+function logWrite(filePath, jsxnLen, expandedLen) {
+  session.full += expandedLen;
+  session.compressed += jsxnLen;
+  session.writes++;
+  const pct = Math.round((1 - jsxnLen / expandedLen) * 100);
+  console.error(
+    `${A.cyan}JSXN ${A.dim}write${A.reset} ${A.white}${filePath}${A.reset}  ` +
+    `${A.dim}~${fmtN(tok(expandedLen))} → ${A.cyan}~${fmtN(tok(jsxnLen))}${A.reset} ${A.dim}tokens${A.reset}  ` +
+    `${A.greenBold}−${pct}%${A.reset}`
+  );
+}
+
+process.on('exit', () => {
+  const total = session.reads + session.writes;
+  if (total === 0) return;
+  const pct = Math.round((1 - session.compressed / session.full) * 100);
+  const saved = tok(session.full - session.compressed);
+  console.error(
+    `\n${A.green}JSXN ${A.bold}session${A.reset}  ` +
+    `${A.dim}${session.reads} reads, ${session.writes} writes${A.reset}  ` +
+    `${A.dim}~${fmtN(tok(session.full))} → ${A.green}~${fmtN(tok(session.compressed))}${A.reset} ${A.dim}tokens${A.reset}  ` +
+    `${A.greenBold}−${pct}%${A.reset}  ` +
+    `${A.dim}(~${fmtN(saved)} saved)${A.reset}`
+  );
+});
+
+// ---------------------------------------------------------------------------
 // Tool: read_jsxn — read a file from disk and return its JSXN-encoded version
 // ---------------------------------------------------------------------------
 
@@ -68,6 +116,8 @@ server.registerTool('read_jsxn', {
 
     const content = await readFile(realFile, 'utf-8');
     const encoded = (ext === '.html' || ext === '.svg') ? encodeHTML(content) : encodeFile(content);
+
+    logRead(filePath, content.length, encoded.length);
 
     return {
       content: [{
@@ -248,6 +298,8 @@ server.registerTool('write_jsxn', {
     const decoded = (ext === '.html' || ext === '.svg') ? decode(code, { format: 'html' }) : decodeFile(code);
     await mkdir(dirname(absPath), { recursive: true });
     await writeFile(absPath, decoded, 'utf-8');
+
+    logWrite(filePath, code.length, decoded.length);
 
     return {
       content: [{
