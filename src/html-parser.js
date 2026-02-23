@@ -93,7 +93,7 @@ export function parseHTML(html) {
 
       // Raw content elements (script, style)
       if (RAW_ELEMENTS.has(tag) && !selfClose && !isVoid) {
-        const closePattern = new RegExp(`</${tag}\\s*>`, 'i');
+        const closePattern = new RegExp(`</${tag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*>`, 'i');
         const match = closePattern.exec(html.slice(pos));
         if (match) {
           const rawContent = html.slice(pos, pos + match.index);

@@ -1,6 +1,6 @@
 {
   "name": "jsx-notation",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "JSXN encoder/decoder — compact notation for React/Next.js files, optimized for LLMs",
   "author": "Sebastián Maciel",
   "type": "module",

@@ -3,7 +3,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
-import { readFile, stat, realpath } from 'node:fs/promises';
+import { readFile, stat, realpath, lstat } from 'node:fs/promises';
 import { resolve, extname, dirname } from 'node:path';
 import { encode, encodeFile, encodeHTML, decode, decodeFile } from '../src/index.js';
 import { writeFile, mkdir } from 'node:fs/promises';
@@ -293,6 +293,19 @@ server.registerTool('write_jsxn', {
         isError: true,
         content: [{ type: 'text', text: 'Only .jsx, .tsx, .js, .ts, .html, and .svg files are supported' }],
       };
+    }
+
+    // Refuse to write through symlinks
+    try {
+      const st = await lstat(absPath);
+      if (st.isSymbolicLink()) {
+        return {
+          isError: true,
+          content: [{ type: 'text', text: 'Target path is a symlink; refusing to follow' }],
+        };
+      }
+    } catch (e) {
+      if (e.code !== 'ENOENT') throw e; // file doesn't exist yet, that's fine
     }
 
     const decoded = (ext === '.html' || ext === '.svg') ? decode(code, { format: 'html' }) : decodeFile(code);
