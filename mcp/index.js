@@ -10,7 +10,8 @@ import { writeFile, mkdir } from 'node:fs/promises';
 
 const server = new McpServer({
   name: 'jsx-notation',
-  version: '0.1.0',
+  version: '0.1.3',
+  description: 'Compact notation for React/Next.js files — encode, decode, read and write JSX/TSX/HTML/SVG with ~40% fewer tokens, optimized for LLMs.',
 });
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
