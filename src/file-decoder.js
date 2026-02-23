@@ -306,7 +306,9 @@ function decodeFunctionBlock(lines, startIdx) {
   let jsxnLines = null;
 
   let inJSX = false;
-  for (const bLine of bodyLines) {
+  let pendingMultiline = null; // track open parens/brackets across lines
+  for (let bi = 0; bi < bodyLines.length; bi++) {
+    const bLine = bodyLines[bi];
     const t = bLine.trim();
 
     if (t === '---') {
@@ -324,6 +326,20 @@ function decodeFunctionBlock(lines, startIdx) {
     if (t === '') {
       if (hookLines.length > 0 && logicLines.length === 0) {
         // blank line between hooks and logic
+      }
+      continue;
+    }
+
+    // If we're continuing a multiline expression, append as-is
+    if (pendingMultiline !== null) {
+      pendingMultiline.lines.push(t);
+      pendingMultiline.depth += countBracketDepth(t);
+      if (pendingMultiline.depth <= 0) {
+        // Multiline complete — emit all lines
+        for (const ml of pendingMultiline.lines) {
+          logicLines.push(`  ${ml}`);
+        }
+        pendingMultiline = null;
       }
       continue;
     }
@@ -355,8 +371,22 @@ function decodeFunctionBlock(lines, startIdx) {
       continue;
     }
 
-    // Logic line: add const if no keyword present
-    logicLines.push(decodeLogicLine(stripped));
+    // Logic line: decode with const detection + multiline tracking
+    const decoded = decodeLogicLine(stripped);
+    const depth = countBracketDepth(stripped);
+    if (depth > 0) {
+      // Open bracket/paren — start multiline tracking
+      pendingMultiline = { lines: [decoded.replace(/^  /, '')], depth };
+    } else {
+      logicLines.push(decoded);
+    }
+  }
+
+  // Flush any remaining multiline (unclosed parens — shouldn't happen but be safe)
+  if (pendingMultiline !== null) {
+    for (const ml of pendingMultiline.lines) {
+      logicLines.push(`  ${ml}`);
+    }
   }
 
   // Build output
@@ -422,6 +452,24 @@ function decodeLogicLine(line) {
   if (/^(let|var)\s+/.test(line)) {
     return `  ${line}`;
   }
-  // Otherwise, add const
+  // Control-flow and statements: don't add const
+  if (/^(if|else|for|while|do|switch|return|throw|try|catch|finally|break|continue|debugger)\b/.test(line)) {
+    return `  ${line}`;
+  }
+  // Function calls / method calls (no `=` before the call)
+  // e.g. console.log(...), doSomething(), arr.push(...)
+  if (/^[a-zA-Z_$][a-zA-Z0-9_$.]*\(/.test(line) && !line.includes(' = ')) {
+    return `  ${line}`;
+  }
+  // Otherwise, add const (it's an assignment: name = expr)
   return `  const ${line}`;
+}
+
+function countBracketDepth(line) {
+  let depth = 0;
+  for (const ch of line) {
+    if (ch === '(' || ch === '[' || ch === '{') depth++;
+    else if (ch === ')' || ch === ']' || ch === '}') depth--;
+  }
+  return depth;
 }

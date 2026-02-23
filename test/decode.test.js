@@ -408,6 +408,50 @@ describe('decodeFile: function blocks', () => {
     expect(result).toContain('useEffect');
   });
 
+  it('does not prepend const to multiline expression continuations', () => {
+    const jsxn = `ActiveTicket({ onSelectTicket }: Props)
+  tickets = useStore((s) => s.tickets)
+
+  active = Object.values(tickets).find(
+    (t) => t.status !== 'completed' && t.status !== 'standby'
+  )
+
+  if (!active) return null;
+  ---
+  div (active.name)`;
+    const result = decodeFile(jsxn);
+    // Multiline assignment should produce one const, not const on every line
+    expect(result).toContain("const active = Object.values(tickets).find(");
+    expect(result).toContain("  (t) => t.status !== 'completed' && t.status !== 'standby'");
+    expect(result).toContain(")");
+    expect(result).not.toContain("const (t)");
+    expect(result).not.toContain("const )");
+    // Control flow should NOT get const
+    expect(result).toContain("if (!active) return null;");
+    expect(result).not.toContain("const if");
+  });
+
+  it('does not prepend const to control-flow statements', () => {
+    const jsxn = `Page()
+  data = fetchData()
+  if (!data) return null;
+  for (const item of data) console.log(item);
+  switch (data.type) { case 'a': break; }
+  return data;
+  ---
+  div "ok"`;
+    const result = decodeFile(jsxn);
+    expect(result).toContain('const data = fetchData()');
+    expect(result).toContain('  if (!data) return null;');
+    expect(result).toContain('  for (const item of data) console.log(item);');
+    expect(result).toContain("  switch (data.type) { case 'a': break; }");
+    expect(result).toContain('  return data;');
+    expect(result).not.toContain('const if');
+    expect(result).not.toContain('const for');
+    expect(result).not.toContain('const switch');
+    expect(result).not.toContain('const return');
+  });
+
   it('decodes "use client" directive', () => {
     const jsxn = `"use client"
 @I react: useState
