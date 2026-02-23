@@ -134,6 +134,8 @@ claude mcp add jsx-notation -- npx jsx-notation-mcp
 ```
 
 > Just add this to your config file and restart Cursor. It will pick up the server automatically — nothing else to install.
+>
+> **Troubleshooting:** If the server shows "No tools or prompts" with a red dot, Cursor can't find `npx` in its PATH (common with nvm). Fix it by replacing `"npx"` with the full path — run `which npx` in your terminal and use that value (e.g. `"/Users/you/.nvm/versions/node/v22.22.0/bin/npx"`).
 
 **Windsurf** (`~/.codeium/windsurf/mcp_config.json`):
 
