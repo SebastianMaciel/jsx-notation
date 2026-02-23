@@ -306,7 +306,8 @@ function decodeFunctionBlock(lines, startIdx) {
   let jsxnLines = null;
 
   let inJSX = false;
-  let pendingMultiline = null; // track open parens/brackets across lines
+  // pendingMultiline: { target: 'hook'|'logic', lines: string[], depth: number }
+  let pendingMultiline = null;
   for (let bi = 0; bi < bodyLines.length; bi++) {
     const bLine = bodyLines[bi];
     const t = bLine.trim();
@@ -335,9 +336,10 @@ function decodeFunctionBlock(lines, startIdx) {
       pendingMultiline.lines.push(t);
       pendingMultiline.depth += countBracketDepth(t);
       if (pendingMultiline.depth <= 0) {
-        // Multiline complete — emit all lines
+        // Multiline complete — emit all lines to the correct target
+        const target = pendingMultiline.target === 'hook' ? hookLines : logicLines;
         for (const ml of pendingMultiline.lines) {
-          logicLines.push(`  ${ml}`);
+          target.push(`  ${ml}`);
         }
         pendingMultiline = null;
       }
@@ -361,13 +363,25 @@ function decodeFunctionBlock(lines, startIdx) {
 
     // name = useHook(args) — other hooks
     if (/^[a-zA-Z_$]/.test(stripped) && stripped.includes('= use') && /= use[A-Z]/.test(stripped)) {
-      hookLines.push(decodeHookCall(stripped));
+      const decoded = decodeHookCall(stripped);
+      const depth = countBracketDepth(stripped);
+      if (depth > 0) {
+        pendingMultiline = { target: 'hook', lines: [decoded.replace(/^  /, '')], depth };
+      } else {
+        hookLines.push(decoded);
+      }
       continue;
     }
 
     // Bare useEffect, useMemo, etc.
     if (/^use[A-Z]/.test(stripped)) {
-      hookLines.push(`  ${stripped}`);
+      const decoded = `  ${stripped}`;
+      const depth = countBracketDepth(stripped);
+      if (depth > 0) {
+        pendingMultiline = { target: 'hook', lines: [decoded.replace(/^  /, '')], depth };
+      } else {
+        hookLines.push(decoded);
+      }
       continue;
     }
 
@@ -376,7 +390,7 @@ function decodeFunctionBlock(lines, startIdx) {
     const depth = countBracketDepth(stripped);
     if (depth > 0) {
       // Open bracket/paren — start multiline tracking
-      pendingMultiline = { lines: [decoded.replace(/^  /, '')], depth };
+      pendingMultiline = { target: 'logic', lines: [decoded.replace(/^  /, '')], depth };
     } else {
       logicLines.push(decoded);
     }
@@ -384,8 +398,9 @@ function decodeFunctionBlock(lines, startIdx) {
 
   // Flush any remaining multiline (unclosed parens — shouldn't happen but be safe)
   if (pendingMultiline !== null) {
+    const target = pendingMultiline.target === 'hook' ? hookLines : logicLines;
     for (const ml of pendingMultiline.lines) {
-      logicLines.push(`  ${ml}`);
+      target.push(`  ${ml}`);
     }
   }
 

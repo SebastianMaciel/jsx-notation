@@ -465,6 +465,89 @@ Page()
   });
 });
 
+describe('decodeFile: multiline hooks', () => {
+  it('handles multiline useMemo', () => {
+    const jsxn = `Page()
+  @state search = ""
+  filteredProducts = useMemo(() => {
+    return products.filter(p => p.name.includes(search));
+  }, [products, search])
+  ---
+  div "ok"`;
+    const result = decodeFile(jsxn);
+    expect(result).toContain('const filteredProducts = useMemo(() => {');
+    expect(result).toContain('return products.filter(p => p.name.includes(search));');
+    expect(result).toContain('}, [products, search])');
+    expect(result).not.toContain('const return');
+    expect(result).not.toContain('const }');
+  });
+
+  it('handles multiline useCallback', () => {
+    const jsxn = `Page()
+  handleDelete = useCallback(async (id: string) => {
+    await fetch(\`/api/products/\${id}\`, { method: "DELETE" });
+  }, [])
+  ---
+  div "ok"`;
+    const result = decodeFile(jsxn);
+    expect(result).toContain('const handleDelete = useCallback(async (id: string) => {');
+    expect(result).toContain('await fetch');
+    expect(result).toContain('}, [])');
+    expect(result).not.toContain('const await');
+  });
+
+  it('handles bare multiline useEffect', () => {
+    const jsxn = `Page()
+  useEffect(() => {
+    fetchProducts().then(setProducts);
+  }, [])
+  ---
+  div "ok"`;
+    const result = decodeFile(jsxn);
+    expect(result).toContain('useEffect(() => {');
+    expect(result).toContain('fetchProducts().then(setProducts);');
+    expect(result).toContain('}, [])');
+    expect(result).not.toContain('const fetchProducts');
+    expect(result).not.toContain('const }');
+  });
+});
+
+describe('decode: prop string vs expression', () => {
+  it('treats dotted property access as expression, not string', () => {
+    const result = decode('Avatar {src:user.avatar}');
+    expect(result).toContain('src={user.avatar}');
+    expect(result).not.toContain('src="user.avatar"');
+  });
+
+  it('still treats file paths with dots as strings', () => {
+    const result = decode('img {src:logo.png, alt:Logo}');
+    expect(result).toContain('src="logo.png"');
+  });
+
+  it('treats URL-like paths as strings', () => {
+    const result = decode('img {src:/images/photo.jpg}');
+    expect(result).toContain('src="/images/photo.jpg"');
+  });
+});
+
+describe('decode: map children indentation', () => {
+  it('indents children inside map correctly', () => {
+    const jsxn = `*stats > .card
+  p.label (stat.label)
+  p.value (stat.value)`;
+    const result = decode(jsxn);
+    // The <p> tags are children of .card, so they must be indented deeper than .card
+    const lines = result.split('\n');
+    const cardLine = lines.find(l => l.includes('className="card"'));
+    const pLine = lines.find(l => l.includes('className="label"'));
+    expect(cardLine).toBeDefined();
+    expect(pLine).toBeDefined();
+    const cardIndent = cardLine.length - cardLine.trimStart().length;
+    const pIndent = pLine.length - pLine.trimStart().length;
+    expect(pIndent).toBeGreaterThan(cardIndent);
+  });
+});
+
 // ---------------------------------------------------------------------------
 // Round-trip tests (encode → decode → valid JSX structure)
 // ---------------------------------------------------------------------------

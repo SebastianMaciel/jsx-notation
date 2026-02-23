@@ -423,8 +423,18 @@ function isSimpleStringValue(val) {
   if (val.includes(' ')) return true;
   // Hash-prefixed values (#hex colors, #ids) — e.g. "#fff", "#6366f1"
   if (val.startsWith('#')) return true;
-  // Values with dots, slashes, hyphens → likely paths/URLs (e.g. "logo.png", "/api/data")
-  if (/[.\-\/]/.test(val)) return true;
+  // Values with slashes or hyphens → likely paths/URLs (e.g. "/api/data", "my-class")
+  if (/[\-\/]/.test(val)) return true;
+  // Dots: file paths/URLs (logo.png, api.example.com) but NOT property access (user.avatar)
+  // Property access: identifier.identifier where segments are camelCase or short JS names
+  if (val.includes('.')) {
+    // If it looks like a file extension (.png, .jpg, .svg, .css, .js, .html, etc.)
+    if (/\.\w{1,4}$/.test(val) && /^[a-zA-Z0-9_/]/.test(val)) return true;
+    // If it starts with a slash, it's a path
+    if (val.startsWith('/')) return true;
+    // Otherwise it's likely a JS property access (user.avatar, obj.prop)
+    // → treat as expression
+  }
   // Numeric values or values starting with a digit (e.g. "12", "0.8", "16px")
   if (/^[0-9]/.test(val)) return true;
   // Known CSS/SVG keyword values that use camelCase
@@ -596,14 +606,14 @@ function emitTernaryJSX(node, level, output) {
 function emitMapJSX(node, level, output) {
   const ind = '  '.repeat(level);
   const childLines = [];
-  emitJSX(node.child, 0, childLines);
+  emitJSX(node.child, level + 1, childLines);
 
   if (childLines.length === 1) {
     output.push(`${ind}{${node.collection}.map(${node.param} => (${childLines[0].trim()}))}`);
   } else {
     output.push(`${ind}{${node.collection}.map(${node.param} => (`);
     for (const cl of childLines) {
-      output.push(`${ind}  ${cl.trimStart()}`);
+      output.push(cl);
     }
     output.push(`${ind}))}`);
   }
