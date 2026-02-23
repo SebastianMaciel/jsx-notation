@@ -1269,7 +1269,11 @@
     if (/[{}()=>!&|?+\[\]]/.test(v)) return false;
     if (v.includes(' ')) return true;
     if (v.startsWith('#')) return true;
-    if (/[.\-\/]/.test(v)) return true;
+    if (/[\-\/]/.test(v)) return true;
+    if (v.includes('.')) {
+      if (/\.\w{1,4}$/.test(v) && /^[a-zA-Z0-9_/]/.test(v)) return true;
+      if (v.startsWith('/')) return true;
+    }
     if (/^[0-9]/.test(v)) return true;
     if (/^(currentColor|evenOdd|nonZero|sRGB|linearRGB)$/.test(v)) return true;
     if (/^[a-zA-Z0-9_]+$/.test(v) && !/[a-z][A-Z]/.test(v)) return true;
@@ -1333,9 +1337,9 @@
   }
 
   function emitMapDec(node, level, out) {
-    const ind = '  '.repeat(level); const cl = []; emitJSXDec(node.child, 0, cl);
+    const ind = '  '.repeat(level); const cl = []; emitJSXDec(node.child, level + 1, cl);
     if (cl.length === 1) out.push(`${ind}{${node.collection}.map(${node.param} => (${cl[0].trim()}))}`);
-    else { out.push(`${ind}{${node.collection}.map(${node.param} => (`); for (const l of cl) out.push(`${ind}  ${l.trimStart()}`); out.push(`${ind}))}`); }
+    else { out.push(`${ind}{${node.collection}.map(${node.param} => (`); for (const l of cl) out.push(l); out.push(`${ind}))}`); }
   }
 
   // --- Inline file decoder ---
@@ -1407,6 +1411,13 @@
     return `${pfx}type ${rest}`;
   }
 
+  function cntBD(line) { let d = 0; for (const ch of line) { if ('([{'.includes(ch)) d++; else if (')]}'.includes(ch)) d--; } return d; }
+  function decLogicLine(line) {
+    if (/^(let|var)\s+/.test(line)) return `  ${line}`;
+    if (/^(if|else|for|while|do|switch|return|throw|try|catch|finally|break|continue|debugger)\b/.test(line)) return `  ${line}`;
+    if (/^[a-zA-Z_$][a-zA-Z0-9_$.]*\(/.test(line) && !line.includes(' = ')) return `  ${line}`;
+    return `  const ${line}`;
+  }
   function decFnBlock(lines, si) {
     const sig = lines[si].trim();
     const m = sig.match(/^((?:export\s+(?:default\s+)?)?)?([A-Za-z_$][A-Za-z0-9_$]*)\((.*)$/);
@@ -1419,19 +1430,26 @@
       if (line.trim() === '') { bodyLines.push(''); i++; continue; }
       if (/^\s/.test(line)) { bodyLines.push(line); i++; } else break;
     }
-    const hooks = [], logic = []; let jsxnLines = null, inJSX = false;
-    for (const bl of bodyLines) {
-      const t = bl.trim();
+    const hooks = [], logic = []; let jsxnLines = null, inJSX = false, pml = null;
+    for (let bi = 0; bi < bodyLines.length; bi++) {
+      const bl = bodyLines[bi], t = bl.trim();
       if (t === '---') { inJSX = true; jsxnLines = []; continue; }
       if (inJSX) { jsxnLines.push(bl.replace(/^  /, '')); continue; }
       if (!t) continue;
+      if (pml !== null) {
+        pml.lines.push(t); pml.depth += cntBD(t);
+        if (pml.depth <= 0) { const tgt = pml.target === 'hook' ? hooks : logic; for (const ml of pml.lines) tgt.push(`  ${ml}`); pml = null; }
+        continue;
+      }
       if (t.startsWith('@state ')) { const mt = t.match(/^@state\s+(\w+)\s*=\s*(.+)$/); if (mt) { const s = 'set' + mt[1][0].toUpperCase() + mt[1].slice(1); hooks.push(`  const [${mt[1]}, ${s}] = useState(${mt[2]})`); } continue; }
       if (t.startsWith('@ref ')) { const mt = t.match(/^@ref\s+(\w+)\s*=\s*(.+)$/); if (mt) hooks.push(`  const ${mt[1]} = useRef(${mt[2]})`); continue; }
-      if (/^[a-zA-Z_$]/.test(t) && /= use[A-Z]/.test(t)) { hooks.push(`  const ${t}`); continue; }
-      if (/^use[A-Z]/.test(t)) { hooks.push(`  ${t}`); continue; }
-      if (/^(let|var)\s+/.test(t)) logic.push(`  ${t}`);
-      else logic.push(`  const ${t}`);
+      if (/^[a-zA-Z_$]/.test(t) && /= use[A-Z]/.test(t)) { const dec = `  const ${t}`, d = cntBD(t); if (d > 0) { pml = { target: 'hook', lines: [dec.replace(/^  /, '')], depth: d }; } else hooks.push(dec); continue; }
+      if (/^use[A-Z]/.test(t)) { const dec = `  ${t}`, d = cntBD(t); if (d > 0) { pml = { target: 'hook', lines: [dec.replace(/^  /, '')], depth: d }; } else hooks.push(dec); continue; }
+      const dec = decLogicLine(t), d = cntBD(t);
+      if (d > 0) { pml = { target: 'logic', lines: [dec.replace(/^  /, '')], depth: d }; }
+      else logic.push(dec);
     }
+    if (pml !== null) { const tgt = pml.target === 'hook' ? hooks : logic; for (const ml of pml.lines) tgt.push(`  ${ml}`); }
     const fp = pfx ? `${pfx} ` : '';
     const out = [`${fp}function ${name}(${params}) {`];
     for (const h of hooks) out.push(h);
