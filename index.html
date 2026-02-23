@@ -29,6 +29,7 @@
     align-items: center;
     padding: 40px 20px;
   }
+  body > * { max-width: 100%; min-width: 0; }
 
   .hero { text-align: center; margin-bottom: 40px; }
   .hero .logo { margin-bottom: 16px; }
@@ -191,16 +192,16 @@
     text-decoration: line-through;
     text-decoration-color: #333;
     line-height: 1.6;
-    white-space: pre;
-    overflow-x: auto;
+    white-space: pre-wrap;
+    word-break: break-all;
   }
   .transform-card .after {
     font-family: "SF Mono", "Fira Code", "JetBrains Mono", Consolas, monospace;
     font-size: 12px;
     line-height: 1.6;
     margin-top: 6px;
-    white-space: pre;
-    overflow-x: auto;
+    white-space: pre-wrap;
+    word-break: break-all;
   }
   .transform-card .after .dim {
     color: #888;
@@ -277,6 +278,7 @@
     color: #999;
     white-space: pre;
     overflow-x: auto;
+    max-width: 100%;
   }
   .step-example .ex-label {
     display: block;
@@ -348,6 +350,7 @@
     color: #4ade80;
     overflow-x: auto;
     white-space: pre;
+    max-width: 100%;
   }
   .install-group { margin-bottom: 20px; }
   .install-group hr,
@@ -465,49 +468,63 @@
     body { padding: 24px 16px; }
     .hero h1 { font-size: 36px; }
     .hero p { font-size: 15px; }
+    .hero p br { display: none; }
     .card { max-width: 100%; }
-    .line { font-size: 12px; padding: 0 16px 0 24px; }
+    .card-body { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .line { font-size: 11px; padding: 0 12px 0 16px; }
     .transform-grid { grid-template-columns: 1fr; }
     .step-vs { flex-direction: column; }
+    .token-counter .tokens { font-size: 28px; }
+    .token-counter .tok-unit { font-size: 15px; }
+    .section { margin-top: 56px; }
+    .install-block { font-size: 12px; word-break: break-all; white-space: pre-wrap; }
+    .step-example { word-break: break-all; white-space: pre-wrap; }
+    .step-vs-code { white-space: pre-wrap; word-break: break-all; }
   }
   @media (max-width: 480px) {
-    body { padding: 20px 12px; }
-    .hero { margin-bottom: 24px; }
+    body { padding: 16px 10px; }
+    .hero { margin-bottom: 20px; }
     .hero .logo { width: 56px; height: 32px; }
-    .hero h1 { font-size: 28px; margin-bottom: 8px; }
+    .hero h1 { font-size: 26px; margin-bottom: 8px; }
     .hero p { font-size: 14px; }
     .hero .hero-sub { font-size: 12px; }
     .card { border-radius: 8px; }
-    .card-body { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-    .line { font-size: 11px; padding: 0 12px 0 16px; }
+    .card-titlebar { padding: 10px 12px; gap: 6px; }
+    .card-filename { font-size: 11px; margin-left: 4px; }
+    .dot { width: 10px; height: 10px; }
+    .line { font-size: 9.5px; padding: 0 8px 0 10px; line-height: 1.5; border-left-width: 2px; }
     .token-counter { min-height: 44px; }
     .token-counter .tokens { font-size: 22px; }
     .token-counter .tok-unit { font-size: 13px; }
     .token-counter .tok-arrow { margin: 0 6px; }
     .token-counter .savings { font-size: 13px; }
-    .token-counter-section { margin-top: 20px; }
-    .content { margin-top: 20px; }
-    .section { margin-top: 40px; }
+    .token-counter-section { margin-top: 16px; }
+    .content { margin-top: 16px; }
+    .section { margin-top: 36px; }
     .section h2 { font-size: 20px; }
     .section .subtext { font-size: 13px; margin-bottom: 16px; }
-    .transform-card { padding: 12px; }
+    .transform-card { padding: 10px; }
     .transform-card .label { font-size: 10px; margin-bottom: 6px; }
     .transform-card .before,
-    .transform-card .after { font-size: 11px; }
+    .transform-card .after { font-size: 10px; }
+    .oneclick-row { gap: 8px; margin-bottom: 20px; }
     .oneclick-btn { width: 100%; justify-content: center; font-size: 13px; padding: 10px 14px; }
-    .install-block { font-size: 11px; padding: 12px; overflow-x: auto; }
+    .install-block { font-size: 10px; padding: 12px 10px; }
     .install-label { font-size: 12px; }
     .install-label code { font-size: 11px; }
     .install-note { font-size: 12px; padding: 10px 12px; }
+    .install-group { margin-bottom: 14px; }
     .steps li { font-size: 13px; }
     .steps li::before { width: 20px; height: 20px; font-size: 11px; margin-right: 10px; }
-    .step-example { margin-left: 30px; font-size: 11px; padding: 8px 10px; }
-    .step-vs { flex-direction: column; margin-left: 30px; }
-    .step-vs-code { font-size: 10px; }
+    .step-example { margin-left: 30px; font-size: 10px; padding: 8px 10px; overflow-x: hidden; }
+    .step-example .ex-diff-add { margin: 0 -10px; padding: 0 8px; }
+    .step-vs { margin-left: 30px; }
+    .step-vs-code { font-size: 9px; }
+    .explainer summary { font-size: 14px; padding: 14px 16px; }
     .explainer-note { font-size: 12px; }
-    .bottom-links { flex-direction: column; align-items: center; gap: 14px; margin-top: 48px; }
+    .bottom-links { flex-direction: column; align-items: center; gap: 14px; margin-top: 36px; }
     .bottom-links a { font-size: 14px; }
-    footer { margin-top: 40px; font-size: 12px; }
+    footer { margin-top: 32px; font-size: 12px; }
   }
 
   .skip-link {
