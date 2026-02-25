@@ -95,12 +95,12 @@ Indentation replaces closing tags. `.class` and `#id` work like CSS selectors. F
 
 The main use case — let your AI assistant read JSX/HTML/SVG files in compressed form.
 
-[![Install in VS Code](https://img.shields.io/badge/Install_in-VS_Code-007ACC?logo=visualstudiocode&logoColor=white)](https://vscode.dev/redirect/mcp/install?name=jsx-notation&config=%7B%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22jsx-notation-mcp%22%5D%7D) [![Install in Cursor](https://img.shields.io/badge/Install_in-Cursor-blue?logo=cursor&logoColor=white)](https://cursor.com/en/install-mcp?name=jsx-notation&config=eyJjb21tYW5kIjoibnB4IiwiYXJncyI6WyJqc3gtbm90YXRpb24tbWNwIl19)
+[![Install in VS Code](https://img.shields.io/badge/Install_in-VS_Code-007ACC?logo=visualstudiocode&logoColor=white)](https://vscode.dev/redirect/mcp/install?name=jsx-notation&config=%7B%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22jsx-notation%22%5D%7D) [![Install in Cursor](https://img.shields.io/badge/Install_in-Cursor-blue?logo=cursor&logoColor=white)](https://cursor.com/en/install-mcp?name=jsx-notation&config=eyJjb21tYW5kIjoibnB4IiwiYXJncyI6WyJqc3gtbm90YXRpb24iXX0=)
 
 **Claude Code:**
 
 ```bash
-claude mcp add jsx-notation -- npx jsx-notation-mcp
+claude mcp add jsx-notation -- npx jsx-notation
 ```
 
 > That's it. Restart Claude Code and the tools will be available. No `npm install` needed — `npx` downloads everything automatically.
@@ -112,7 +112,7 @@ claude mcp add jsx-notation -- npx jsx-notation-mcp
   "servers": {
     "jsx-notation": {
       "command": "npx",
-      "args": ["jsx-notation-mcp"]
+      "args": ["jsx-notation"]
     }
   }
 }
@@ -127,7 +127,7 @@ claude mcp add jsx-notation -- npx jsx-notation-mcp
   "mcpServers": {
     "jsx-notation": {
       "command": "npx",
-      "args": ["jsx-notation-mcp"]
+      "args": ["jsx-notation"]
     }
   }
 }
@@ -144,7 +144,7 @@ claude mcp add jsx-notation -- npx jsx-notation-mcp
   "mcpServers": {
     "jsx-notation": {
       "command": "npx",
-      "args": ["jsx-notation-mcp"]
+      "args": ["jsx-notation"]
     }
   }
 }
@@ -161,7 +161,7 @@ claude mcp add jsx-notation -- npx jsx-notation-mcp
   "context_servers": {
     "jsx-notation": {
       "command": "npx",
-      "args": ["jsx-notation-mcp"]
+      "args": ["jsx-notation"]
     }
   }
 }
