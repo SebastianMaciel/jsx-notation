@@ -1,0 +1,20 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.SebastianMaciel/jsx-notation",
+  "description": "JSXN encoder/decoder — compact notation for React/Next.js files, optimized for LLMs",
+  "repository": {
+    "url": "https://github.com/SebastianMaciel/jsx-notation",
+    "source": "github"
+  },
+  "version": "0.1.4",
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "jsx-notation",
+      "version": "0.1.4",
+      "transport": {
+        "type": "stdio"
+      }
+    }
+  ]
+}
