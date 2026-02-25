@@ -4,19 +4,29 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
 import { readFile, stat, realpath, lstat } from 'node:fs/promises';
-import { resolve, extname, dirname } from 'node:path';
+import { resolve, extname, dirname, relative, isAbsolute } from 'node:path';
 import { encode, encodeFile, encodeHTML, decode, decodeFile } from '../src/index.js';
 import { writeFile, mkdir } from 'node:fs/promises';
 
 const server = new McpServer({
   name: 'jsx-notation',
-  version: '0.1.3',
+  version: '0.1.4',
   description: 'Compact notation for React/Next.js files — encode, decode, read and write JSX/TSX/HTML/SVG with ~40% fewer tokens, optimized for LLMs.',
 });
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 const MAX_INPUT_LENGTH = 10 * 1024 * 1024;
 const ALLOWED_EXTENSIONS = new Set(['.jsx', '.tsx', '.js', '.ts', '.html', '.svg']);
+const ROOT_DIR = resolve(process.env.JSXN_ROOT ?? process.cwd());
+
+function assertWithinRoot(absPath) {
+  const rel = relative(ROOT_DIR, absPath);
+  if (rel.startsWith('..') || isAbsolute(rel)) {
+    const err = new Error('Path escapes allowed root directory');
+    err.code = 'EACCES';
+    throw err;
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Stats — stderr only, never sent to the model
@@ -87,6 +97,7 @@ server.registerTool('read_jsxn', {
 }, async ({ path: filePath }) => {
   try {
     const absPath = resolve(filePath);
+    assertWithinRoot(absPath);
 
     // Validate extension before reading anything
     const ext = extname(absPath).toLowerCase();
@@ -287,6 +298,7 @@ server.registerTool('write_jsxn', {
 }, async ({ code, path: filePath }) => {
   try {
     const absPath = resolve(filePath);
+    assertWithinRoot(absPath);
     const ext = extname(absPath).toLowerCase();
 
     if (!ALLOWED_EXTENSIONS.has(ext)) {
