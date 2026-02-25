@@ -4,3 +4,6 @@ dist/
 *.log
 .claude/
 BACKLOG.md
+scripts/
+.mcpregistry_*
+.vscode/
